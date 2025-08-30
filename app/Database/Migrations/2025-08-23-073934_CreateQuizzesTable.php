@@ -10,18 +10,18 @@ class CreateQuizzesTable extends Migration
     {
         $this->forge->addField([
             'id' => [
-                'type' => 'INT',
-                'constraint' => 11,
-                'unsigned' => true,
+                'type'           => 'INT',
+                'constraint'     => 11,
+                'unsigned'       => true,
                 'auto_increment' => true,
             ],
             'lesson_id' => [
-                'type' => 'INT',
+                'type'       => 'INT',
                 'constraint' => 11,
-                'unsigned' => true,
+                'unsigned'   => true,
             ],
             'title' => [
-                'type' => 'VARCHAR',
+                'type'       => 'VARCHAR',
                 'constraint' => 200,
             ],
             'description' => [
@@ -33,50 +33,50 @@ class CreateQuizzesTable extends Migration
                 'null' => false,
             ],
             'option_a' => [
-                'type' => 'VARCHAR',
+                'type'       => 'VARCHAR',
                 'constraint' => 500,
-                'null' => false,
+                'null'       => false,
             ],
             'option_b' => [
-                'type' => 'VARCHAR',
+                'type'       => 'VARCHAR',
                 'constraint' => 500,
-                'null' => false,
+                'null'       => false,
             ],
             'option_c' => [
-                'type' => 'VARCHAR',
+                'type'       => 'VARCHAR',
                 'constraint' => 500,
-                'null' => true,
+                'null'       => true,
             ],
             'option_d' => [
-                'type' => 'VARCHAR',
+                'type'       => 'VARCHAR',
                 'constraint' => 500,
-                'null' => true,
+                'null'       => true,
             ],
             'correct_answer' => [
-                'type' => 'ENUM',
+                'type'       => 'ENUM',
                 'constraint' => ['A', 'B', 'C', 'D'],
-                'null' => false,
+                'null'       => false,
             ],
             'points' => [
-                'type' => 'INT',
+                'type'       => 'INT',
                 'constraint' => 11,
-                'default' => 1,
+                'default'    => 1,
             ],
             'time_limit' => [
-                'type' => 'INT',
+                'type'       => 'INT',
                 'constraint' => 11,
-                'comment' => 'Time limit in seconds',
-                'null' => true,
+                'comment'    => 'Time limit in seconds',
+                'null'       => true,
             ],
             'order_number' => [
-                'type' => 'INT',
+                'type'       => 'INT',
                 'constraint' => 11,
-                'default' => 1,
+                'default'    => 1,
             ],
             'status' => [
-                'type' => 'ENUM',
+                'type'       => 'ENUM',
                 'constraint' => ['active', 'inactive'],
-                'default' => 'active',
+                'default'    => 'active',
             ],
             'created_at' => [
                 'type' => 'DATETIME',
@@ -87,9 +87,12 @@ class CreateQuizzesTable extends Migration
                 'null' => false,
             ],
         ]);
-        
+
         $this->forge->addKey('id', true);
+
+        
         $this->forge->addForeignKey('lesson_id', 'lessons', 'id', 'CASCADE', 'CASCADE');
+
         $this->forge->createTable('quizzes');
     }
 

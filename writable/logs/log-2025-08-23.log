@@ -1,0 +1,104 @@
+CRITICAL - 2025-08-23 07:24:05 --> ErrorException: Undefined property: Config\Migrations::$timestampFormat
+[Method: CLI, Route: make:migration/CreateUsersTable]
+in SYSTEMPATH\Commands\Generators\MigrationGenerator.php on line 126.
+ 1 SYSTEMPATH\Commands\Generators\MigrationGenerator.php(126): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined property: Config\\Migrations::$timestampFormat', 'C:\\xampp\\htdocs\\ITE311-LABASA\\system\\Commands\\Generators\\MigrationGenerator.php', 126)
+ 2 SYSTEMPATH\CLI\GeneratorTrait.php(458): CodeIgniter\Commands\Generators\MigrationGenerator->basename('C:\\xampp\\htdocs\\ITE311-LABASA\\app\\Database\\Migrations\\CreateUsersTable.php')
+ 3 SYSTEMPATH\CLI\GeneratorTrait.php(128): CodeIgniter\Commands\Generators\MigrationGenerator->buildPath('App\\Database\\Migrations\\CreateUsersTable')
+ 4 SYSTEMPATH\Commands\Generators\MigrationGenerator.php(95): CodeIgniter\Commands\Generators\MigrationGenerator->generateClass([...])
+ 5 SYSTEMPATH\CLI\Commands.php(74): CodeIgniter\Commands\Generators\MigrationGenerator->run([...])
+ 6 SYSTEMPATH\CLI\Console.php(47): CodeIgniter\CLI\Commands->run('make:migration', [...])
+ 7 SYSTEMPATH\Boot.php(388): CodeIgniter\CLI\Console->run()
+ 8 SYSTEMPATH\Boot.php(133): CodeIgniter\Boot::runCommand(Object(CodeIgniter\CLI\Console))
+ 9 ROOTPATH\spark(87): CodeIgniter\Boot::bootSpark(Object(Config\Paths))
+CRITICAL - 2025-08-23 07:25:31 --> ErrorException: Undefined property: Config\Migrations::$timestampFormat
+[Method: CLI, Route: make:migration/CreateUserTable]
+in SYSTEMPATH\Commands\Generators\MigrationGenerator.php on line 126.
+ 1 SYSTEMPATH\Commands\Generators\MigrationGenerator.php(126): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined property: Config\\Migrations::$timestampFormat', 'C:\\xampp\\htdocs\\ITE311-LABASA\\system\\Commands\\Generators\\MigrationGenerator.php', 126)
+ 2 SYSTEMPATH\CLI\GeneratorTrait.php(458): CodeIgniter\Commands\Generators\MigrationGenerator->basename('C:\\xampp\\htdocs\\ITE311-LABASA\\app\\Database\\Migrations\\CreateUserTable.php')
+ 3 SYSTEMPATH\CLI\GeneratorTrait.php(128): CodeIgniter\Commands\Generators\MigrationGenerator->buildPath('App\\Database\\Migrations\\CreateUserTable')
+ 4 SYSTEMPATH\Commands\Generators\MigrationGenerator.php(95): CodeIgniter\Commands\Generators\MigrationGenerator->generateClass([...])
+ 5 SYSTEMPATH\CLI\Commands.php(74): CodeIgniter\Commands\Generators\MigrationGenerator->run([...])
+ 6 SYSTEMPATH\CLI\Console.php(47): CodeIgniter\CLI\Commands->run('make:migration', [...])
+ 7 SYSTEMPATH\Boot.php(388): CodeIgniter\CLI\Console->run()
+ 8 SYSTEMPATH\Boot.php(133): CodeIgniter\Boot::runCommand(Object(CodeIgniter\CLI\Console))
+ 9 ROOTPATH\spark(87): CodeIgniter\Boot::bootSpark(Object(Config\Paths))
+ERROR - 2025-08-23 07:42:53 --> mysqli_sql_exception: Can't create table `lms_labasa`.`submissions` (errno: 150 "Foreign key constraint is incorrectly formed") in C:\xampp\htdocs\ITE311-LABASA\system\Database\MySQLi\Connection.php:327
+Stack trace:
+#0 C:\xampp\htdocs\ITE311-LABASA\system\Database\MySQLi\Connection.php(327): mysqli->query('CREATE TABLE `s...', 0)
+#1 C:\xampp\htdocs\ITE311-LABASA\system\Database\BaseConnection.php(729): CodeIgniter\Database\MySQLi\Connection->execute('CREATE TABLE `s...')
+#2 C:\xampp\htdocs\ITE311-LABASA\system\Database\BaseConnection.php(646): CodeIgniter\Database\BaseConnection->simpleQuery('CREATE TABLE `s...')
+#3 C:\xampp\htdocs\ITE311-LABASA\system\Database\Forge.php(570): CodeIgniter\Database\BaseConnection->query('CREATE TABLE `s...')
+#4 C:\xampp\htdocs\ITE311-LABASA\app\Database\Migrations\2025-08-23-074011_CreateSubmissionsTable.php(75): CodeIgniter\Database\Forge->createTable('submissions')
+#5 C:\xampp\htdocs\ITE311-LABASA\system\Database\MigrationRunner.php(876): App\Database\Migrations\CreateSubmissionsTable->up()
+#6 C:\xampp\htdocs\ITE311-LABASA\system\Database\MigrationRunner.php(182): CodeIgniter\Database\MigrationRunner->migrate('up', Object(stdClass))
+#7 C:\xampp\htdocs\ITE311-LABASA\system\Commands\Database\Migrate.php(85): CodeIgniter\Database\MigrationRunner->latest(NULL)
+#8 C:\xampp\htdocs\ITE311-LABASA\system\CLI\Commands.php(74): CodeIgniter\Commands\Database\Migrate->run(Array)
+#9 C:\xampp\htdocs\ITE311-LABASA\system\CLI\Console.php(47): CodeIgniter\CLI\Commands->run('migrate', Array)
+#10 C:\xampp\htdocs\ITE311-LABASA\system\Boot.php(388): CodeIgniter\CLI\Console->run()
+#11 C:\xampp\htdocs\ITE311-LABASA\system\Boot.php(133): CodeIgniter\Boot::runCommand(Object(CodeIgniter\CLI\Console))
+#12 C:\xampp\htdocs\ITE311-LABASA\spark(87): CodeIgniter\Boot::bootSpark(Object(Config\Paths))
+#13 {main}
+ERROR - 2025-08-23 07:44:11 --> mysqli_sql_exception: Can't create table `lms_labasa`.`submissions` (errno: 150 "Foreign key constraint is incorrectly formed") in C:\xampp\htdocs\ITE311-LABASA\system\Database\MySQLi\Connection.php:327
+Stack trace:
+#0 C:\xampp\htdocs\ITE311-LABASA\system\Database\MySQLi\Connection.php(327): mysqli->query('CREATE TABLE `s...', 0)
+#1 C:\xampp\htdocs\ITE311-LABASA\system\Database\BaseConnection.php(729): CodeIgniter\Database\MySQLi\Connection->execute('CREATE TABLE `s...')
+#2 C:\xampp\htdocs\ITE311-LABASA\system\Database\BaseConnection.php(646): CodeIgniter\Database\BaseConnection->simpleQuery('CREATE TABLE `s...')
+#3 C:\xampp\htdocs\ITE311-LABASA\system\Database\Forge.php(570): CodeIgniter\Database\BaseConnection->query('CREATE TABLE `s...')
+#4 C:\xampp\htdocs\ITE311-LABASA\app\Database\Migrations\2025-08-23-074011_CreateSubmissionsTable.php(75): CodeIgniter\Database\Forge->createTable('submissions')
+#5 C:\xampp\htdocs\ITE311-LABASA\system\Database\MigrationRunner.php(876): App\Database\Migrations\CreateSubmissionsTable->up()
+#6 C:\xampp\htdocs\ITE311-LABASA\system\Database\MigrationRunner.php(182): CodeIgniter\Database\MigrationRunner->migrate('up', Object(stdClass))
+#7 C:\xampp\htdocs\ITE311-LABASA\system\Commands\Database\Migrate.php(85): CodeIgniter\Database\MigrationRunner->latest(NULL)
+#8 C:\xampp\htdocs\ITE311-LABASA\system\CLI\Commands.php(74): CodeIgniter\Commands\Database\Migrate->run(Array)
+#9 C:\xampp\htdocs\ITE311-LABASA\system\CLI\Console.php(47): CodeIgniter\CLI\Commands->run('migrate', Array)
+#10 C:\xampp\htdocs\ITE311-LABASA\system\Boot.php(388): CodeIgniter\CLI\Console->run()
+#11 C:\xampp\htdocs\ITE311-LABASA\system\Boot.php(133): CodeIgniter\Boot::runCommand(Object(CodeIgniter\CLI\Console))
+#12 C:\xampp\htdocs\ITE311-LABASA\spark(87): CodeIgniter\Boot::bootSpark(Object(Config\Paths))
+#13 {main}
+ERROR - 2025-08-23 07:46:13 --> mysqli_sql_exception: Can't create table `lms_labasa`.`submissions` (errno: 150 "Foreign key constraint is incorrectly formed") in C:\xampp\htdocs\ITE311-LABASA\system\Database\MySQLi\Connection.php:327
+Stack trace:
+#0 C:\xampp\htdocs\ITE311-LABASA\system\Database\MySQLi\Connection.php(327): mysqli->query('CREATE TABLE `s...', 0)
+#1 C:\xampp\htdocs\ITE311-LABASA\system\Database\BaseConnection.php(729): CodeIgniter\Database\MySQLi\Connection->execute('CREATE TABLE `s...')
+#2 C:\xampp\htdocs\ITE311-LABASA\system\Database\BaseConnection.php(646): CodeIgniter\Database\BaseConnection->simpleQuery('CREATE TABLE `s...')
+#3 C:\xampp\htdocs\ITE311-LABASA\system\Database\Forge.php(570): CodeIgniter\Database\BaseConnection->query('CREATE TABLE `s...')
+#4 C:\xampp\htdocs\ITE311-LABASA\app\Database\Migrations\2025-08-23-074011_CreateSubmissionsTable.php(78): CodeIgniter\Database\Forge->createTable('submissions')
+#5 C:\xampp\htdocs\ITE311-LABASA\system\Database\MigrationRunner.php(876): App\Database\Migrations\CreateSubmissionsTable->up()
+#6 C:\xampp\htdocs\ITE311-LABASA\system\Database\MigrationRunner.php(182): CodeIgniter\Database\MigrationRunner->migrate('up', Object(stdClass))
+#7 C:\xampp\htdocs\ITE311-LABASA\system\Commands\Database\Migrate.php(85): CodeIgniter\Database\MigrationRunner->latest(NULL)
+#8 C:\xampp\htdocs\ITE311-LABASA\system\CLI\Commands.php(74): CodeIgniter\Commands\Database\Migrate->run(Array)
+#9 C:\xampp\htdocs\ITE311-LABASA\system\CLI\Console.php(47): CodeIgniter\CLI\Commands->run('migrate', Array)
+#10 C:\xampp\htdocs\ITE311-LABASA\system\Boot.php(388): CodeIgniter\CLI\Console->run()
+#11 C:\xampp\htdocs\ITE311-LABASA\system\Boot.php(133): CodeIgniter\Boot::runCommand(Object(CodeIgniter\CLI\Console))
+#12 C:\xampp\htdocs\ITE311-LABASA\spark(87): CodeIgniter\Boot::bootSpark(Object(Config\Paths))
+#13 {main}
+ERROR - 2025-08-23 07:48:14 --> mysqli_sql_exception: Can't create table `lms_labasa`.`submissions` (errno: 150 "Foreign key constraint is incorrectly formed") in C:\xampp\htdocs\ITE311-LABASA\system\Database\MySQLi\Connection.php:327
+Stack trace:
+#0 C:\xampp\htdocs\ITE311-LABASA\system\Database\MySQLi\Connection.php(327): mysqli->query('CREATE TABLE `s...', 0)
+#1 C:\xampp\htdocs\ITE311-LABASA\system\Database\BaseConnection.php(729): CodeIgniter\Database\MySQLi\Connection->execute('CREATE TABLE `s...')
+#2 C:\xampp\htdocs\ITE311-LABASA\system\Database\BaseConnection.php(646): CodeIgniter\Database\BaseConnection->simpleQuery('CREATE TABLE `s...')
+#3 C:\xampp\htdocs\ITE311-LABASA\system\Database\Forge.php(570): CodeIgniter\Database\BaseConnection->query('CREATE TABLE `s...')
+#4 C:\xampp\htdocs\ITE311-LABASA\app\Database\Migrations\2025-08-23-074011_CreateSubmissionsTable.php(75): CodeIgniter\Database\Forge->createTable('submissions')
+#5 C:\xampp\htdocs\ITE311-LABASA\system\Database\MigrationRunner.php(876): App\Database\Migrations\CreateSubmissionsTable->up()
+#6 C:\xampp\htdocs\ITE311-LABASA\system\Database\MigrationRunner.php(182): CodeIgniter\Database\MigrationRunner->migrate('up', Object(stdClass))
+#7 C:\xampp\htdocs\ITE311-LABASA\system\Commands\Database\Migrate.php(85): CodeIgniter\Database\MigrationRunner->latest(NULL)
+#8 C:\xampp\htdocs\ITE311-LABASA\system\CLI\Commands.php(74): CodeIgniter\Commands\Database\Migrate->run(Array)
+#9 C:\xampp\htdocs\ITE311-LABASA\system\CLI\Console.php(47): CodeIgniter\CLI\Commands->run('migrate', Array)
+#10 C:\xampp\htdocs\ITE311-LABASA\system\Boot.php(388): CodeIgniter\CLI\Console->run()
+#11 C:\xampp\htdocs\ITE311-LABASA\system\Boot.php(133): CodeIgniter\Boot::runCommand(Object(CodeIgniter\CLI\Console))
+#12 C:\xampp\htdocs\ITE311-LABASA\spark(87): CodeIgniter\Boot::bootSpark(Object(Config\Paths))
+#13 {main}
+ERROR - 2025-08-23 07:51:40 --> mysqli_sql_exception: Can't create table `lms_labasa`.`submissions` (errno: 150 "Foreign key constraint is incorrectly formed") in C:\xampp\htdocs\ITE311-LABASA\system\Database\MySQLi\Connection.php:327
+Stack trace:
+#0 C:\xampp\htdocs\ITE311-LABASA\system\Database\MySQLi\Connection.php(327): mysqli->query('CREATE TABLE `s...', 0)
+#1 C:\xampp\htdocs\ITE311-LABASA\system\Database\BaseConnection.php(729): CodeIgniter\Database\MySQLi\Connection->execute('CREATE TABLE `s...')
+#2 C:\xampp\htdocs\ITE311-LABASA\system\Database\BaseConnection.php(646): CodeIgniter\Database\BaseConnection->simpleQuery('CREATE TABLE `s...')
+#3 C:\xampp\htdocs\ITE311-LABASA\system\Database\Forge.php(570): CodeIgniter\Database\BaseConnection->query('CREATE TABLE `s...')
+#4 C:\xampp\htdocs\ITE311-LABASA\app\Database\Migrations\2025-08-23-074011_CreateSubmissionsTable.php(75): CodeIgniter\Database\Forge->createTable('submissions')
+#5 C:\xampp\htdocs\ITE311-LABASA\system\Database\MigrationRunner.php(876): App\Database\Migrations\CreateSubmissionsTable->up()
+#6 C:\xampp\htdocs\ITE311-LABASA\system\Database\MigrationRunner.php(182): CodeIgniter\Database\MigrationRunner->migrate('up', Object(stdClass))
+#7 C:\xampp\htdocs\ITE311-LABASA\system\Commands\Database\Migrate.php(85): CodeIgniter\Database\MigrationRunner->latest(NULL)
+#8 C:\xampp\htdocs\ITE311-LABASA\system\CLI\Commands.php(74): CodeIgniter\Commands\Database\Migrate->run(Array)
+#9 C:\xampp\htdocs\ITE311-LABASA\system\CLI\Console.php(47): CodeIgniter\CLI\Commands->run('migrate', Array)
+#10 C:\xampp\htdocs\ITE311-LABASA\system\Boot.php(388): CodeIgniter\CLI\Console->run()
+#11 C:\xampp\htdocs\ITE311-LABASA\system\Boot.php(133): CodeIgniter\Boot::runCommand(Object(CodeIgniter\CLI\Console))
+#12 C:\xampp\htdocs\ITE311-LABASA\spark(87): CodeIgniter\Boot::bootSpark(Object(Config\Paths))
+#13 {main}
