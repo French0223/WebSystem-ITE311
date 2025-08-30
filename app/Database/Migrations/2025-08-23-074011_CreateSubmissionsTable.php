@@ -70,7 +70,7 @@ class CreateSubmissionsTable extends Migration
         
         $this->forge->addKey('id', true);
         $this->forge->addForeignKey('student_id', 'users', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('quiz_id', 'quizzes', 'id', 'CASCADE', 'CASCADE');
+        
         $this->forge->addForeignKey('lesson_id', 'lessons', 'id', 'CASCADE', 'CASCADE');
         $this->forge->createTable('submissions');
     }
