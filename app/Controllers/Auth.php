@@ -13,29 +13,12 @@ class Auth extends BaseController
             // Set validation rules
             $validation = \Config\Services::validation();
             $validation->setRules([
-                'username' => [
-                    'rules' => 'required|min_length[3]|max_length[50]|is_unique[users.username]',
+                'name' => [
+                    'rules' => 'required|min_length[2]|max_length[100]',
                     'errors' => [
-                        'required' => 'Username is required',
-                        'min_length' => 'Username must be at least 3 characters long',
-                        'max_length' => 'Username cannot exceed 50 characters',
-                        'is_unique' => 'This username is already taken'
-                    ]
-                ],
-                'first_name' => [
-                    'rules' => 'required|min_length[2]|max_length[50]',
-                    'errors' => [
-                        'required' => 'First name is required',
-                        'min_length' => 'First name must be at least 2 characters long',
-                        'max_length' => 'First name cannot exceed 50 characters'
-                    ]
-                ],
-                'last_name' => [
-                    'rules' => 'required|min_length[2]|max_length[50]',
-                    'errors' => [
-                        'required' => 'Last name is required',
-                        'min_length' => 'Last name must be at least 2 characters long',
-                        'max_length' => 'Last name cannot exceed 50 characters'
+                        'required' => 'Name is required',
+                        'min_length' => 'Name must be at least 2 characters long',
+                        'max_length' => 'Name cannot exceed 100 characters'
                     ]
                 ],
                 'email' => [
@@ -68,15 +51,10 @@ class Auth extends BaseController
                 
                 // Prepare user data
                 $userData = [
-                    'username' => $this->request->getPost('username'),
+                    'name' => $this->request->getPost('name'),
                     'email' => $this->request->getPost('email'),
-                    'password' => $hashedPassword,
-                    'first_name' => $this->request->getPost('first_name'),
-                    'last_name' => $this->request->getPost('last_name'),
-                    'role' => 'student', // Default role
-                    'status' => 'active',
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'hashed_password' => $hashedPassword,
+                    'role' => 'student'
                 ];
 
                 // Save to database
@@ -132,22 +110,19 @@ class Auth extends BaseController
                 $builder = $db->table('users');
                 $user = $builder->where('email', $email)->get()->getRowArray();
 
-                if ($user && password_verify($password, $user['password'])) {
+                if ($user && password_verify($password, $user['hashed_password'])) {
                     // Create user session
                     $sessionData = [
                         'userID' => $user['id'],
-                        'username' => $user['username'],
-                        'first_name' => $user['first_name'],
-                        'last_name' => $user['last_name'],
+                        'name' => $user['name'],
                         'email' => $user['email'],
                         'role' => $user['role'],
-                        'status' => $user['status'],
                         'isLoggedIn' => true
                     ];
                     session()->set($sessionData);
 
                     // Set welcome flash message
-                    session()->setFlashdata('success', 'Welcome back, ' . $user['first_name'] . ' ' . $user['last_name'] . '!');
+                    session()->setFlashdata('success', 'Welcome back, ' . $user['name'] . '!');
                     return redirect()->to(base_url('index.php/dashboard'));
                 } else {
                     session()->setFlashdata('error', 'Invalid email or password.');
@@ -183,12 +158,9 @@ class Auth extends BaseController
         // User is logged in, show dashboard
         $data = [
             'user' => [
-                'username' => session()->get('username'),
-                'first_name' => session()->get('first_name'),
-                'last_name' => session()->get('last_name'),
+                'name' => session()->get('name'),
                 'email' => session()->get('email'),
-                'role' => session()->get('role'),
-                'status' => session()->get('status')
+                'role' => session()->get('role')
             ]
         ];
 
