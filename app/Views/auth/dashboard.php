@@ -137,7 +137,7 @@
     </div>
     <div class="user-dropdown">
       <button class="dropdown-toggle" onclick="toggleDropdown()">
-        <?= $user['first_name'] . ' ' . $user['last_name'] ?> <i class="fas fa-chevron-down ms-1"></i>
+        <?= $user['name'] ?>
       </button>
       <div class="dropdown-menu-custom" id="userDropdown">
         <a href="<?= base_url('index.php/logout') ?>" class="dropdown-item-custom">
@@ -155,7 +155,7 @@
 
     <!-- Welcome Message -->
     <div class="welcome-message">
-      <h2>Welcome back, <?= $user['first_name'] ?>!</h2>
+      <h2>Welcome back, <?= $user['name'] ?>!</h2>
       <p class="text-muted">Here's what's happening with your account today.</p>
     </div>
 
