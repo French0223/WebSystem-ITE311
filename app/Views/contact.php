@@ -38,10 +38,10 @@
     <div class="d-flex align-items-center">
       <ul class="nav">
         <li class="nav-item">
-          <a class="nav-link" href="<?= site_url("/") ?>">Home</a>
+          <a class="nav-link" href="<?= site_url(relativePath: "/") ?>">Home</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="<?= site_url("about") ?>">About</a>
+          <a class="nav-link" href="<?= site_url(relativePath: "about") ?>">About</a>
         </li>
         <li class="nav-item">
           <a class="nav-link active fw-bold" href="<?= site_url("contact") ?>">Contact</a>

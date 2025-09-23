@@ -121,9 +121,23 @@ class Auth extends BaseController
                     ];
                     session()->set($sessionData);
 
-                    // Set welcome flash message
-                    session()->setFlashdata('success', 'Welcome back, ' . $user['name'] . '!');
-                    return redirect()->to(base_url('index.php/dashboard'));
+                    // Regenerate session ID to prevent session fixation
+                    session()->regenerate();
+
+                    // Redirect based on role
+                    switch ($user['role']) {
+                        case 'admin':
+                            return redirect()->to(base_url('index.php/admin/dashboard'));
+                        case 'teacher':
+                            return redirect()->to(base_url('index.php/teacher/dashboard'));
+                        case 'student':
+                            return redirect()->to(base_url('index.php/student/dashboard'));
+                        default:
+                            // Unknown role: clear session and go back to login
+                            session()->destroy();
+                            session()->setFlashdata('error', 'Your account role is not recognized.');
+                            return redirect()->to(base_url('index.php/login'));
+                    }
                 } else {
                     session()->setFlashdata('error', 'Invalid email or password.');
                 }
