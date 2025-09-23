@@ -15,4 +15,9 @@ $routes->post('/register', 'Auth::register');
 $routes->get('/login', 'Auth::login');
 $routes->post('/login', 'Auth::login');
 $routes->get('/logout', 'Auth::logout');
+
+// Role-specific dashboards
+$routes->get('/admin/dashboard', 'Admin::dashboard');
+$routes->get('/teacher/dashboard', 'Teacher::dashboard');
+$routes->get('/student/dashboard', 'Student::dashboard');
 $routes->get('/dashboard', 'Auth::dashboard');

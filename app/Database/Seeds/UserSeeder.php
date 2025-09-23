@@ -19,32 +19,20 @@ class UserSeeder extends Seeder
                 'name' => 'John Smith',
                 'email' => 'instructor1@lms.com',
                 'hashed_password' => password_hash('instructor123', PASSWORD_DEFAULT),
-                'role' => 'instructor',
+                'role' => 'teacher',
             ],
             [
                 'name' => 'Sarah Johnson',
                 'email' => 'instructor2@lms.com',
                 'hashed_password' => password_hash('instructor123', PASSWORD_DEFAULT),
-                'role' => 'instructor',
+                'role' => 'teacher',
             ],
             [
                 'name' => 'Michael Brown',
                 'email' => 'student1@lms.com',
                 'hashed_password' => password_hash('student123', PASSWORD_DEFAULT),
                 'role' => 'student',
-            ],
-            [
-                'name' => 'Emily Davis',
-                'email' => 'student2@lms.com',
-                'hashed_password' => password_hash('student123', PASSWORD_DEFAULT),
-                'role' => 'student',
-            ],
-            [
-                'name' => 'David Wilson',
-                'email' => 'student3@lms.com',
-                'hashed_password' => password_hash('student123', PASSWORD_DEFAULT),
-                'role' => 'student',
-            ],
+            ]
         ];
 
         $this->db->table('users')->insertBatch($data);
