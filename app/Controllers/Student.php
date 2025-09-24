@@ -2,13 +2,13 @@
 
 namespace App\Controllers;
 
-class Student extends Basecontroller
+class Student extends BaseController
 {
     public function dashboard()
     {
         // Must be logged in
         if (!session()->get('isLoggedIn')) {
-            session()->setFlashback('error', 'Please login first.');
+            session()->setFlashdata('error', 'Please login first.');
             return redirect()->to(base_url('index.php/login'));
         }
 
@@ -18,14 +18,12 @@ class Student extends Basecontroller
             return redirect()->to(base_url('index.php/login'));
         }
 
-        $data = [
-            'name' => session('name'),
-             // Example future data for student:
-            // 'enrolledCourses' => [],
-            // 'upcomingDeadlines' => [],
-            // 'recentGrades' => [],   
-             ];
-
-             return view('student/dashboard', $data);
-    }
+        return view('auth/dashboard', [
+            'user' => [
+              'name'  => session('name'),
+              'email' => session('email'),
+              'role'  => session('role'),
+            ]
+          ]);
+        }
 }
