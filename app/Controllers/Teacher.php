@@ -16,13 +16,12 @@ class Teacher extends BaseController
             return redirect()->to(base_url('index.php/login'));
         }
 
-        $data = [
-            'name' => session('name'),
-            // Example future data for teacher:
-            // 'myCourses' => [],
-            // 'newSubmissions' => [],
-        ];
-
-        return view('teacher/dashboard', $data);
+        return view('auth/dashboard', [
+            'user' => [
+              'name'  => session('name'),
+              'email' => session('email'),
+              'role'  => session('role'),
+            ]
+          ]);
     }
 }

@@ -8,7 +8,7 @@ class Admin extends BaseController
     {
         // Must be logged in
         if  (!session () ->get('isLoggedIn')) {
-            session()->setFlashData('error', 'Please Login first.');
+            session()->setFlashdata('error', 'Please Login first.');
             return redirect()->to(base_url('index.php/login'));
         }
 
@@ -18,15 +18,14 @@ class Admin extends BaseController
             return redirect()->to(base_url('index.php/login'));
         }
 
-        $data = [
-            'name' => session('name'),
-            // Example future data for admin:
-            // 'totalUsers' => 0,
-            // 'totalCourses' => 0,
-            // 'recentActivity' => [],
-            ];
-
-            return view('admin/dashboard', $data);
+        // Render unified wrapper with user context
+        return view('auth/dashboard', [
+            'user' => [
+                'name'  => session('name'),
+                'email' => session('email'),
+                'role'  => session('role'),
+            ]
+        ]);
         }
 }
 

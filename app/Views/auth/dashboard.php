@@ -159,105 +159,26 @@
       <p class="text-muted">Here's what's happening with your account today.</p>
     </div>
 
-    <!-- Statistics Cards -->
-    <div class="row stats-row">
-      <div class="col-md-3">
-        <div class="stat-card">
-          <div class="stat-icon">
-            <i class="fas fa-book-open"></i>
-          </div>
-          <div class="stat-number">12</div>
-          <div class="stat-label">Courses</div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="stat-card">
-          <div class="stat-icon">
-            <i class="fas fa-clipboard-list"></i>
-          </div>
-          <div class="stat-number">8</div>
-          <div class="stat-label">Assignments</div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="stat-card">
-          <div class="stat-icon">
-            <i class="fas fa-chart-line"></i>
-          </div>
-          <div class="stat-number">95%</div>
-          <div class="stat-label">Progress</div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="stat-card">
-          <div class="stat-icon">
-            <i class="fas fa-star"></i>
-          </div>
-          <div class="stat-number">A+</div>
-          <div class="stat-label">Grade</div>
-        </div>
-      </div>
-    </div>
+    <?php
+      // Wrapper: load role-specific partials
+      $role = $user['role'] ?? session('role');
+      $name = $user['name'] ?? session('name');
 
-    <!-- Main Content Row -->
-    <div class="row">
-      <!-- Left Column - Quick Actions -->
-      <div class="col-md-6">
-        <div class="content-card">
-          <h5 class="section-title">
-            <i class="fas fa-bolt"></i>
-            Quick Actions
-          </h5>
-          <div class="row">
-            <div class="col-md-6">
-              <a href="#" class="quick-action-btn">
-                <i class="fas fa-book me-2"></i>
-                <strong>View Courses</strong>
-              </a>
-              <a href="#" class="quick-action-btn">
-                <i class="fas fa-graduation-cap me-2"></i>
-                <strong>Grades</strong>
-              </a>
-            </div>
-            <div class="col-md-6">
-              <a href="#" class="quick-action-btn">
-                <i class="fas fa-tasks me-2"></i>
-                <strong>Assignments</strong>
-              </a>
-              <a href="#" class="quick-action-btn">
-                <i class="fas fa-user-edit me-2"></i>
-                <strong>Profile</strong>
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right Column - Recent Activity -->
-      <div class="col-md-6">
-        <div class="content-card">
-          <h5 class="section-title">
-            <i class="fas fa-clock"></i>
-            Recent Activity
-          </h5>
-          <div class="activity-item">
-            <strong>Assignment Submitted</strong>
-            <div class="text-muted small">Web Design Project - Phase 2</div>
-            <div class="text-muted small">2 hours ago</div>
-          </div>
-          <div class="activity-item">
-            <strong>Quiz Completed</strong>
-            <div class="text-muted small">Database Management Quiz - Score 95%</div>
-            <div class="text-muted small">1 day ago</div>
-          </div>
-          <div class="activity-item">
-            <strong>Course Enrolled</strong>
-            <div class="text-muted small">Advanced Web Development</div>
-            <div class="text-muted small">3 days ago</div>
-          </div>
-        </div>
-      </div>
-    </div>
+      switch ($role) {
+        case 'admin':
+          echo view('admin', ['name' => $name]);
+          break;
+        case 'teacher':
+          echo view('teacher', ['name' => $name]);
+          break;
+        case 'student':
+          echo view('student', ['name' => $name]);
+          break;
+        default:
+          echo '<div class="alert alert-warning mt-3">Role not recognized.</div>';
+          break;
+      }
+    ?>
   </div>
 
   <script>
