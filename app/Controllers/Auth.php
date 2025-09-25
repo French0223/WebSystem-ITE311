@@ -64,7 +64,7 @@ class Auth extends BaseController
                 if ($builder->insert($userData)) {
                     // Set success flash message
                     session()->setFlashdata('success', 'Registration successful! Please login.');
-                    return redirect()->to(base_url('index.php/login'));
+                    return redirect()->to(base_url('login'));
                 } else {
                     session()->setFlashdata('error', 'Registration failed. Please try again.');
                 }
@@ -127,16 +127,16 @@ class Auth extends BaseController
                     // Redirect based on role
                     switch ($user['role']) {
                         case 'admin':
-                            return redirect()->to(base_url('index.php/admin/dashboard'));
+                            return redirect()->to(base_url('admin/dashboard'));
                         case 'teacher':
-                            return redirect()->to(base_url('index.php/teacher/dashboard'));
+                            return redirect()->to(base_url('teacher/dashboard'));
                         case 'student':
-                            return redirect()->to(base_url('index.php/student/dashboard'));
+                            return redirect()->to(base_url('student/dashboard'));
                         default:
                             // Unknown role: clear session and go back to login
                             session()->destroy();
                             session()->setFlashdata('error', 'Your account role is not recognized.');
-                            return redirect()->to(base_url('index.php/login'));
+                            return redirect()->to(base_url('login'));
                     }
                 } else {
                     session()->setFlashdata('error', 'Invalid email or password.');
@@ -158,7 +158,7 @@ class Auth extends BaseController
         
         // Set logout message and redirect
         session()->setFlashdata('success', 'You have been logged out successfully.');
-        return redirect()->to(base_url('index.php/login'));
+        return redirect()->to(base_url('login'));
     }
 
     public function dashboard()
@@ -166,7 +166,7 @@ class Auth extends BaseController
         // Check if user is logged in
         if (!session()->get('isLoggedIn')) {
             session()->setFlashdata('error', 'Please login to access the dashboard.');
-            return redirect()->to(base_url('index.php/login'));
+            return redirect()->to(base_url('login'));
         }
 
         // User is logged in, show dashboard
