@@ -8,12 +8,12 @@ class Teacher extends BaseController
     {
         if (!session()->get('isLoggedIn')) {
             session()->setFlashdata('error', 'Please login first.');
-            return redirect()->to(base_url('index.php/login'));
+            return redirect()->to(base_url('login'));
         }
 
         if (session('role') !== 'teacher') {
             session()->setFlashdata('error', 'Unauthorized access.');
-            return redirect()->to(base_url('index.php/login'));
+            return redirect()->to(base_url('login'));
         }
 
         return view('auth/dashboard', [

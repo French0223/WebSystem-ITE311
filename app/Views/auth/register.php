@@ -50,13 +50,13 @@
           <a class="nav-link" href="<?= base_url() ?>">Home</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="<?= base_url('index.php/about') ?>">About</a>
+          <a class="nav-link" href="<?= base_url('about') ?>">About</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="<?= base_url('index.php/contact') ?>">Contact</a>
+          <a class="nav-link" href="<?= base_url('contact') ?>">Contact</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="<?= base_url('index.php/login') ?>">Log in</a>
+          <a class="nav-link" href="<?= base_url('login') ?>">Log in</a>
         </li>
       </ul>
     </div>
@@ -81,7 +81,7 @@
               <div class="alert alert-danger"><?= $validation->listErrors() ?></div>
           <?php endif; ?>
 
-          <form action="<?= base_url('index.php/register') ?>" method="post">
+          <form action="<?= base_url('register') ?>" method="post">
               <div class="mb-3">
                   <label>Name</label>
                   <input type="text" name="name" class="form-control" value="<?= old('name') ?>">
@@ -104,7 +104,7 @@
           </form>
 
           <div class="login-link">
-            <p class="mt-3">Already have an account? <a href="<?= base_url('index.php/login') ?>">Login here</a></p>
+            <p class="mt-3">Already have an account? <a href="<?= base_url('login') ?>">Login here</a></p>
           </div>
 
         </div>
