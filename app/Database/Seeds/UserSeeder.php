@@ -16,20 +16,20 @@ class UserSeeder extends Seeder
                 'role' => 'admin',
             ],
             [
-                'name' => 'John Smith',
-                'email' => 'instructor1@lms.com',
+                'name' => 'Jim jamero',
+                'email' => 'teacher@lms.com',
+                'hashed_password' => password_hash('teacher123', PASSWORD_DEFAULT),
+                'role' => 'teacher',
+            ],
+            [
+                'name' => 'Precious Autida',
+                'email' => 'teacher1@lms.com',
                 'hashed_password' => password_hash('instructor123', PASSWORD_DEFAULT),
                 'role' => 'teacher',
             ],
             [
-                'name' => 'Sarah Johnson',
-                'email' => 'instructor2@lms.com',
-                'hashed_password' => password_hash('instructor123', PASSWORD_DEFAULT),
-                'role' => 'teacher',
-            ],
-            [
-                'name' => 'Michael Brown',
-                'email' => 'student1@lms.com',
+                'name' => 'Frenchie RM M. Labasa',
+                'email' => 'student@lms.com',
                 'hashed_password' => password_hash('student123', PASSWORD_DEFAULT),
                 'role' => 'student',
             ]

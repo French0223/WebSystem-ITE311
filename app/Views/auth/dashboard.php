@@ -131,11 +131,36 @@
 <body class="bg-light">
 
   <!-- Top Header -->
-  <div class="top-header d-flex justify-content-between align-items-center">
-    <div class="logo">
-      <h4 class="m-0">Learning Management System</h4>
-    </div>
-    <div class="user-dropdown">
+  <div class="top-header d-flex align-items-center">
+  <!-- Left: Logo -->
+  <div class="logo">
+    <h4 class="m-0">Learning Management System</h4>
+  </div>
+
+  <!-- Right: Nav + Dropdown together -->
+  <div class="d-flex align-items-center ms-auto">
+    <!-- Role-based nav -->
+    <?php $role = session('role'); ?>
+    <nav>
+      <ul class="nav">
+        <?php if ($role === 'admin'): ?>
+          <li class="nav-item"><a class="nav-link" href="<?= base_url('index.php/admin/dashboard') ?>">Admin Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" href="#">User Management</a></li>
+          <li class="nav-item"><a class="nav-link" href="#">Courses Management</a></li>
+        <?php elseif ($role === 'teacher'): ?>
+          <li class="nav-item"><a class="nav-link" href="<?= base_url('index.php/teacher/dashboard') ?>">Teacher Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" href="#">My Courses</a></li>
+          <li class="nav-item"><a class="nav-link" href="#">New Lesson</a></li>
+        <?php elseif ($role === 'student'): ?>
+          <li class="nav-item"><a class="nav-link" href="<?= base_url('index.php/student/dashboard') ?>">Student Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" href="#">My Courses</a></li>
+          <li class="nav-item"><a class="nav-link" href="#">My Grades</a></li>
+        <?php endif; ?>
+      </ul>
+    </nav>
+
+    <!-- Dropdown -->
+    <div class="user-dropdown ms-3">
       <button class="dropdown-toggle" onclick="toggleDropdown()">
         <?= $user['name'] ?>
       </button>
@@ -146,6 +171,7 @@
       </div>
     </div>
   </div>
+</div>
 
   <!-- Dashboard Content -->
   <div class="container dashboard-content">
