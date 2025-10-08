@@ -2,153 +2,101 @@
 
 namespace App\Controllers;
 
+use App\Models\UserModel;
 use CodeIgniter\Controller;
 
 class Auth extends BaseController
 {
     public function register()
     {
-        // Check if form was submitted (POST request)
-        if ($this->request->getMethod() === 'POST') {
-            // Set validation rules
-            $validation = \Config\Services::validation();
-            $validation->setRules([
-                'name' => [
-                    'rules' => 'required|min_length[2]|max_length[100]',
-                    'errors' => [
-                        'required' => 'Name is required',
-                        'min_length' => 'Name must be at least 2 characters long',
-                        'max_length' => 'Name cannot exceed 100 characters'
-                    ]
-                ],
-                'email' => [
-                    'rules' => 'required|valid_email|is_unique[users.email]',
-                    'errors' => [
-                        'required' => 'Email is required',
-                        'valid_email' => 'Please enter a valid email address',
-                        'is_unique' => 'This email is already registered'
-                    ]
-                ],
-                'password' => [
-                    'rules' => 'required|min_length[6]',
-                    'errors' => [
-                        'required' => 'Password is required',
-                        'min_length' => 'Password must be at least 6 characters long'
-                    ]
-                ],
-                'password_confirm' => [
-                    'rules' => 'required|matches[password]',
-                    'errors' => [
-                        'required' => 'Password confirmation is required',
-                        'matches' => 'Password confirmation does not match'
-                    ]
-                ]
-            ]);
+        helper(['form']);
+        $session = session();
+        $model = new UserModel();
 
-            if ($validation->withRequest($this->request)->run()) {
-                // Hash the password
-                $hashedPassword = password_hash($this->request->getPost('password'), PASSWORD_DEFAULT);
-                
-                // Prepare user data
-                $userData = [
+        if ($this->request->getMethod() === 'POST') {
+            $rules = [
+                'name' => 'required|min_length[2]|max_length[100]',
+                'email' => 'required|valid_email|is_unique[users.email]',
+                'password' => 'required|min_length[6]',
+                'password_confirm' => 'required|matches[password]'
+            ];
+
+            if ($this->validate($rules)) {
+                $data = [
                     'name' => $this->request->getPost('name'),
                     'email' => $this->request->getPost('email'),
-                    'hashed_password' => $hashedPassword,
+                    'hashed_password' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
                     'role' => 'student'
                 ];
 
-                // Save to database
-                $db = \Config\Database::connect();
-                $builder = $db->table('users');
-                
-                if ($builder->insert($userData)) {
-                    // Set success flash message
-                    session()->setFlashdata('success', 'Registration successful! Please login.');
+                if ($model->insert($data)) {
+                    $session->setFlashdata('success', 'Registration successful. Please login.');
                     return redirect()->to(base_url('login'));
                 } else {
-                    session()->setFlashdata('error', 'Registration failed. Please try again.');
+                    $errors = $model->errors();
+                    $errorMessage = 'Registration failed. ';
+                    if (!empty($errors)) {
+                        $errorMessage .= implode(', ', $errors);
+                    } else {
+                        $errorMessage .= 'Please try again.';
+                    }
+                    $session->setFlashdata('error', $errorMessage);
                 }
             } else {
-                // Validation failed
-                session()->setFlashdata('error', 'Please fix the errors below.');
-                return view('auth/register', ['validation' => $validation]);
+                $session->setFlashdata('error', 'Please fix the errors below.');
             }
         }
 
-        // Display registration form
-        return view('auth/register');
+        echo view('auth/register', [
+            'validation' => $this->validator
+        ]);
     }
 
     public function login()
     {
-        // Check if form was submitted (POST request)
-        if ($this->request->getMethod() === 'POST') {
-            // Set validation rules
-            $validation = \Config\Services::validation();
-            $validation->setRules([
-                'email' => [
-                    'rules' => 'required|valid_email',
-                    'errors' => [
-                        'required' => 'Email is required',
-                        'valid_email' => 'Please enter a valid email address'
-                    ]
-                ],
-                'password' => [
-                    'rules' => 'required',
-                    'errors' => [
-                        'required' => 'Password is required'
-                    ]
-                ]
-            ]);
+        if (session()->get('isLoggedIn')) {
+            return redirect()->to(base_url('dashboard'));
+        }
 
-            if ($validation->withRequest($this->request)->run()) {
+        helper(['form']);
+        $session = session();
+        $model = new UserModel();
+
+        if ($this->request->getMethod() === 'POST') {
+            $rules = [
+                'email' => 'required|valid_email',
+                'password' => 'required'
+            ];
+
+            if ($this->validate($rules)) {
                 $email = $this->request->getPost('email');
                 $password = $this->request->getPost('password');
 
-                // Check database for user
-                $db = \Config\Database::connect();
-                $builder = $db->table('users');
-                $user = $builder->where('email', $email)->get()->getRowArray();
+                $user = $model->where('email', $email)->first();
 
                 if ($user && password_verify($password, $user['hashed_password'])) {
-                    // Create user session
-                    $sessionData = [
-                        'userID' => $user['id'],
+                    $session->set([
+                        'user_id' => $user['id'],
                         'name' => $user['name'],
                         'email' => $user['email'],
                         'role' => $user['role'],
                         'isLoggedIn' => true
-                    ];
-                    session()->set($sessionData);
+                    ]);
 
-                    // Regenerate session ID to prevent session fixation
+                    $session->setFlashdata('success', 'Welcome, ' . $user['name'] . '!');
                     session()->regenerate();
-
-                    // Redirect based on role
-                    switch ($user['role']) {
-                        case 'admin':
-                            return redirect()->to(base_url('admin/dashboard'));
-                        case 'teacher':
-                            return redirect()->to(base_url('teacher/dashboard'));
-                        case 'student':
-                            return redirect()->to(base_url('student/dashboard'));
-                        default:
-                            // Unknown role: clear session and go back to login
-                            session()->destroy();
-                            session()->setFlashdata('error', 'Your account role is not recognized.');
-                            return redirect()->to(base_url('login'));
-                    }
+                    return redirect()->to(base_url('dashboard'));
                 } else {
-                    session()->setFlashdata('error', 'Invalid email or password.');
+                    $session->setFlashdata('error', 'Invalid login credentials.');
                 }
             } else {
-                session()->setFlashdata('error', 'Please fix the errors below.');
-                return view('auth/login', ['validation' => $validation]);
+                $session->setFlashdata('error', 'Please fix the errors below.');
             }
         }
 
-        // Display login form
-        return view('auth/login');
+        echo view('auth/login', [
+            'validation' => $this->validator
+        ]);
     }
 
     public function logout()

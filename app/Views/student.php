@@ -1,4 +1,6 @@
-<div class="container py-4">
+<?= $this->extend('template') ?>
+
+<?= $this->section('content') ?><div class="container py-4">
   <h3 class="mb-3 text-primary">Student Dashboard</h3>
   <p>Welcome, <?= esc($name) ?>!</p>
 
@@ -30,3 +32,4 @@
     </div>
   </div>
 </div>
+<?= $this->endSection() ?>
