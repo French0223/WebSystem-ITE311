@@ -1,28 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Register - ITE311-LABASA</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    /* Top navbar */
-    .top-nav {
-      background: white;
-      padding: 15px 40px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .top-nav .nav-link {
-      color: #333 !important;
-      font-weight: 500;
-      margin-left: 15px;
-    }
-    .top-nav .nav-link.active {
-      color: #0d6efd !important;
-      font-weight: 600;
-    }
+<?= $this->extend('template') ?>
 
-    /* Content box styling */
+<?= $this->section('content') ?>
+  <style>
     .register-box {
       background: rgba(255,255,255,0.95);
       border-radius: 8px;
@@ -30,39 +9,9 @@
       margin-top: 60px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-
-    .login-link {
-      text-align: center;
-      margin-top: 15px;
-    }
+    .login-link { text-align: center; margin-top: 15px; }
   </style>
-</head>
-<body class="bg-light">
 
-  <!-- Top Navigation -->
-  <div class="top-nav d-flex justify-content-between align-items-center">
-    <div class="logo">
-      <h4 class="m-0">Learning Management System</h4>
-    </div>
-    <div class="d-flex align-items-center">
-      <ul class="nav">
-        <li class="nav-item">
-          <a class="nav-link" href="<?= base_url() ?>">Home</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="<?= base_url('about') ?>">About</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="<?= base_url('contact') ?>">Contact</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="<?= base_url('login') ?>">Log in</a>
-        </li>
-      </ul>
-    </div>
-  </div>
-
-  <!-- Register Content -->
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-md-6">
@@ -111,7 +60,4 @@
       </div>
     </div>
   </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<?= $this->endSection() ?>
