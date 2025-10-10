@@ -111,21 +111,39 @@ class Auth extends BaseController
 
     public function dashboard()
     {
-        // Check if user is logged in
         if (!session()->get('isLoggedIn')) {
             session()->setFlashdata('error', 'Please login to access the dashboard.');
             return redirect()->to(base_url('login'));
         }
-
-        // User is logged in, show dashboard
+    
         $data = [
             'user' => [
-                'name' => session()->get('name'),
+                'name'  => session()->get('name'),
                 'email' => session()->get('email'),
-                'role' => session()->get('role')
+                'role'  => session()->get('role')
             ]
         ];
-
+    
+        // If student, prepare enrolled and available courses
+        if (session()->get('role') === 'student') {
+            $userId = (int) session()->get('user_id');
+    
+            $enrollments = new \App\Models\EnrollmentModel();
+            $courses     = new \App\Models\CourseModel();
+    
+            $enrolled = $enrollments->getUserEnrollments($userId);
+            $active   = $courses->getActiveCourses();
+    
+            // Compute available = active minus enrolled
+            $enrolledIds = array_map(fn($c) => (int) $c['id'], $enrolled);
+            $available   = array_values(array_filter($active, fn($c) => !in_array((int) $c['id'], $enrolledIds, true)));
+    
+            $data['studentData'] = [
+                'enrolledCourses'  => $enrolled,
+                'availableCourses' => $available,
+            ];
+        }
+    
         return view('auth/dashboard', $data);
     }
 }
