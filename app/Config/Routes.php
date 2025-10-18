@@ -28,3 +28,14 @@ $routes->get('/announcements', 'Announcement::index');
 // Teacher and Admin dashboards
 $routes->get('/teacher/dashboard', 'Teacher::dashboard');
 $routes->get('/admin/dashboard', 'Admin::dashboard');
+
+// Protected groups with RoleAuth
+$routes->group('admin', ['filter' => 'roleauth'], function($routes) {
+    $routes->get('dashboard', 'Admin::dashboard');
+    // add more admin routes here as needed
+});
+
+$routes->group('teacher', ['filter' => 'roleauth'], function($routes) {
+    $routes->get('dashboard', 'Teacher::dashboard');
+    // add more teacher routes here as needed
+});
