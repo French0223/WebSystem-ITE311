@@ -21,3 +21,6 @@ $routes->get('/dashboard', 'Auth::dashboard');
 
 // Enrollment action
 $routes->post('/course/enroll', 'Course::enroll');
+
+// Announcement routes
+$routes->get('/announcements', 'Announcement::index');
