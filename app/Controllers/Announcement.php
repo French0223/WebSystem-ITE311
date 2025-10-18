@@ -2,12 +2,14 @@
 
 namespace App\Controllers;
 
+use App\Models\AnnouncementModel;
+
 class Announcement extends BaseController
 {
     public function index()
     {
-        // Task 1
-        $announcements = []; 
+        $model = new AnnouncementModel();
+        $announcements = $model->orderBy('created_at', 'DESC')->findAll();
 
         return view('announcements', [
             'announcements' => $announcements
