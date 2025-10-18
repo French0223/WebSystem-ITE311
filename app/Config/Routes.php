@@ -24,3 +24,7 @@ $routes->post('/course/enroll', 'Course::enroll');
 
 // Announcement routes
 $routes->get('/announcements', 'Announcement::index');
+
+// Teacher and Admin dashboards
+$routes->get('/teacher/dashboard', 'Teacher::dashboard');
+$routes->get('/admin/dashboard', 'Admin::dashboard');

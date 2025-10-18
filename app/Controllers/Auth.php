@@ -55,7 +55,15 @@ class Auth extends BaseController
     public function login()
     {
         if (session()->get('isLoggedIn')) {
-            return redirect()->to(base_url('dashboard'));
+            $role = session()->get('role');
+            if ($role === 'student') {
+                return redirect()->to('/announcements');
+            } elseif ($role === 'teacher') {
+                return redirect()->to('/teacher/dashboard');
+            } elseif ($role === 'admin') {
+                return redirect()->to('/admin/dashboard');
+            }
+            return redirect()->to('/announcements');
         }
 
         helper(['form']);
@@ -85,7 +93,16 @@ class Auth extends BaseController
 
                     $session->setFlashdata('success', 'Welcome, ' . $user['name'] . '!');
                     session()->regenerate();
-                    return redirect()->to(base_url('dashboard'));
+
+                    if ($user['role'] === 'student') {
+                        return redirect()->to('/announcements');
+                    } elseif ($user['role'] === 'teacher') {
+                        return redirect()->to('/teacher/dashboard');
+                    } elseif ($user['role'] === 'admin') {
+                        return redirect()->to('/admin/dashboard');
+                    }
+
+                    return redirect()->to('/announcements');
                 } else {
                     $session->setFlashdata('error', 'Invalid login credentials.');
                 }

@@ -18,14 +18,8 @@ class Admin extends BaseController
             return redirect()->to(base_url('login'));
         }
 
-        // Render unified wrapper with user context
-        return view('auth/dashboard', [
-            'user' => [
-                'name'  => session('name'),
-                'email' => session('email'),
-                'role'  => session('role'),
-            ]
-        ]);
+        // Render admin-specific dashboard view
+        return view('admin_dashboard');
         }
 }
 
