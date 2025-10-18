@@ -7,8 +7,16 @@
 </head>
 <body class="bg-light">
   <div class="container py-4">
+    <?php if (session()->getFlashdata('error')): ?>
+    <div class="alert alert-danger mb-3"><?= esc(session()->getFlashdata('error')) ?></div>
+  <?php endif; ?>
+  <?php if (session()->getFlashdata('success')): ?>
+    <div class="alert alert-success mb-3"><?= esc(session()->getFlashdata('success')) ?></div>
+  <?php endif; ?>
+    <div class="d-flex justify-content-end mb-3">
+      <a href="<?= base_url('logout') ?>" class="btn btn-outline-danger btn-sm">Logout</a>
+    </div>
     <h1 class="mb-4">Announcements</h1>
-
     <?php if (empty($announcements)): ?>
       <div class="alert alert-info">No announcements yet.</div>
     <?php else: ?>

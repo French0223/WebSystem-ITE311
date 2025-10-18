@@ -83,6 +83,8 @@ class Auth extends BaseController
                 $user = $model->where('email', $email)->first();
 
                 if ($user && password_verify($password, $user['hashed_password'])) {
+                    // Regenerate before setting session data to prevent fixation and ensure persistence
+                    session()->regenerate(true);
                     $session->set([
                         'user_id' => $user['id'],
                         'name' => $user['name'],
@@ -92,7 +94,6 @@ class Auth extends BaseController
                     ]);
 
                     $session->setFlashdata('success', 'Welcome, ' . $user['name'] . '!');
-                    session()->regenerate();
 
                     if ($user['role'] === 'student') {
                         return redirect()->to('/announcements');
