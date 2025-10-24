@@ -5,12 +5,10 @@ $isLoggedIn = !empty($role);
 ?>
 
 <div class="top-header d-flex align-items-center">
-  <!-- Left: Logo -->
   <div class="logo">
     <h5 class="m-0 text-primary">Learning Management System</h5>
   </div>
 
-  <!-- Right: Role-based nav + Dropdown -->
   <div class="d-flex align-items-center ms-auto">
     <nav class="me-3">
       <ul class="nav">
@@ -36,8 +34,20 @@ $isLoggedIn = !empty($role);
     </nav>
 
     <?php if ($isLoggedIn): ?>
+      <div class="me-3 position-relative">
+        <a href="javascript:void(0)" id="notifToggle" class="text-decoration-none position-relative">
+          <i class="fas fa-bell fa-lg"></i>
+          <span id="notifBadge" class="badge bg-danger position-absolute top-0 start-100 translate-middle rounded-pill" style="display:none;">0</span>
+        </a>
+        <div id="notifMenu" class="position-absolute bg-white shadow rounded p-2" style="right:0; left:unset; display:none; z-index:1050;">
+          <div id="notifList"></div>
+          <div class="text-end mt-2">
+          </div>
+        </div>
+      </div>
+
       <div class="user-dropdown position-relative">
-        <button class="dropdown-toggle" onclick="toggleDropdown()">
+        <button class="dropdown-toggle">
           <?= esc($name ?? 'User') ?>
         </button>
         <div class="dropdown-menu-custom position-absolute bg-white shadow rounded p-2" id="userDropdown">

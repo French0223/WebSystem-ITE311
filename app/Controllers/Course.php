@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\CourseModel;
 use App\Models\EnrollmentModel;
+use App\Models\NotificationModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class Course extends BaseController
@@ -43,11 +44,28 @@ class Course extends BaseController
             'enrollment_date' => date('Y-m-d H:i:s'),
         ];
 
-        if ($enrollments->enrollUser($data)) {
-            return $this->response->setJSON(['status' => 'ok', 'message' => 'Enrollment successful.']);
+        // Insert enrollment
+        $insertId = $enrollments->insert($data, true);
+        if (!$insertId) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)
+                ->setJSON(['status' => 'error', 'message' => 'Failed to enroll. Please try again.']);
         }
 
-        return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)
-            ->setJSON(['status' => 'error', 'message' => 'Failed to enroll.']);
+        // Build a friendly course name (fallback if key differs)
+        $courseName = $course['name'] ?? $course['title'] ?? ('Course #' . $courseId);
+
+        // Create a notification for the enrolled student
+        $notifModel = new NotificationModel();
+        $notifModel->insert([
+            'user_id'    => $userId,
+            'message'    => 'You have been enrolled in ' . $courseName,
+            'is_read'    => 0,
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        return $this->response->setJSON([
+            'status'  => 'ok',
+            'message' => 'Enrolled successfully.',
+        ]);
     }
 }
