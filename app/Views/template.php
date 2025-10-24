@@ -21,6 +21,46 @@
 
     <?= view('templates/header', ['title' => $title ?? 'LMS']) ?>
 
+    <?php
+      $session = session();
+      $success = $session->getFlashdata('success');
+      $error   = $session->getFlashdata('error');
+      $warning = $session->getFlashdata('warning');
+      $info    = $session->getFlashdata('info');
+    ?>
+    <?php if ($success || $error || $warning || $info): ?>
+      <div class="container mt-3">
+        <?php if ($success): ?>
+          <div class="alert alert-success alert-dismissible fade show d-flex align-items-center" role="alert" aria-live="polite">
+            <i class="fa-solid fa-circle-check me-2"></i>
+            <div><?= esc($success) ?></div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        <?php endif; ?>
+        <?php if ($error): ?>
+          <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center" role="alert" aria-live="assertive">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i>
+            <div><?= esc($error) ?></div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        <?php endif; ?>
+        <?php if ($warning): ?>
+          <div class="alert alert-warning alert-dismissible fade show d-flex align-items-center" role="alert" aria-live="polite">
+            <i class="fa-solid fa-circle-exclamation me-2"></i>
+            <div><?= esc($warning) ?></div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        <?php endif; ?>
+        <?php if ($info): ?>
+          <div class="alert alert-info alert-dismissible fade show d-flex align-items-center" role="alert" aria-live="polite">
+            <i class="fa-solid fa-circle-info me-2"></i>
+            <div><?= esc($info) ?></div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
+
     <?php $full = trim($this->renderSection('full_content')); ?>
     <?php if ($full !== ''): ?>
       <?= $full ?>
@@ -45,5 +85,19 @@
       });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Auto-dismiss flash alerts after 4 seconds
+      window.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+          document.querySelectorAll('.alert').forEach(function(el){
+            try {
+              var inst = bootstrap.Alert.getOrCreateInstance(el);
+              inst.close();
+            } catch(e) {}
+          });
+        }, 4000);
+      });
+    </script>
+    <?= $this->renderSection('scripts') ?>
 </body>
 </html>

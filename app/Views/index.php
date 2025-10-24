@@ -20,7 +20,7 @@
   </style>
 
   <div class="hero-section">
-    <div class="hero-slide active" style="background-image: url('https://i.ytimg.com/vi/EQQclSX18Vg/maxresdefault.jpg');"></div>
+    <div class="hero-slide" style="background-image: url('https://i.ytimg.com/vi/EQQclSX18Vg/maxresdefault.jpg');"></div>
     <div class="hero-slide" style="background-image: url('https://scontent.fmnl13-4.fna.fbcdn.net/v/t1.6435-9/72416281_10157327393661346_5503501463084597248_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=833d8c&_nc_eui2=AeFnvqV7s6hmEuUP4Pg2Ig-kcoVDpa99ANlyhUOlr30A2VsR0j5JA_PvkuzORl0t-WP1tew5a2TnnypIDgrry4tP&_nc_ohc=keUIqgGwXGMQ7kNvwE_J5ls&_nc_oc=Adm8JQDYyGd2J-dEkQpsYEr8Jz-LO6FrXTqmPnrPwVn-7uJ6BjVD5toqW4Rn-XIV1Vw4qmiCTzsPxF4Pg3ZiXer0&_nc_zt=23&_nc_ht=scontent.fmnl13-4.fna&_nc_gid=ygChj6rodOlt8znFONqeow&oh=00_AfUOly28v0_S6qGVvHwSk__3XmWEQnSn33c7exAX-j6uZg&oe=68D7F862');"></div>
     <div class="hero-slide" style="background-image: url('https://rmmc.edu.ph/public/images/library-three.png');"></div>
 

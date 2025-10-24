@@ -15,18 +15,45 @@
 
   <div class="row g-3">
     <div class="col-md-6">
-      <div class="card shadow-sm h-100">
-        <div class="card-header fw-semibold">Enrolled Courses</div>
-        <div class="card-body">
+      <div class="card shadow-sm h-100 border-0">
+        <div class="card-header bg-white fw-semibold d-flex align-items-center justify-content-between">
+          <span><i class="fa-solid fa-graduation-cap text-primary me-2"></i>Enrolled Courses</span>
+          <span class="badge text-bg-light border"><?= count($enrolledCourses ?? []) ?></span>
+        </div>
+        <div class="card-body" style="max-height:380px; overflow:auto;">
           <ul class="list-group list-group-flush" id="enrolled-list">
             <?php if (empty($enrolledCourses)): ?>
-              <li class="list-group-item text-muted">No enrolled courses yet.</li>
+              <li class="list-group-item text-center py-4" id="enrolled-empty">
+                <div class="text-muted"><i class="fa-regular fa-folder-open me-1"></i>No enrolled courses yet.</div>
+              </li>
             <?php else: ?>
               <?php foreach ($enrolledCourses as $c): ?>
-                <li class="list-group-item d-flex justify-content-between align-items-start">
-                  <div>
-                    <div class="fw-semibold"><?= esc($c['title']) ?></div>
-                    <small class="text-muted">Enrolled: <?= esc(date('M d, Y H:i', strtotime($c['enrollment_date']))) ?></small>
+                <li class="list-group-item">
+                  <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                      <div class="fw-semibold"><?= esc($c['title']) ?></div>
+                      <small class="text-muted">Enrolled: <?= esc(date('M d, Y H:i', strtotime($c['enrollment_date']))) ?></small>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#m-<?= (int) $c['id'] ?>">
+                      <i class="fa-regular fa-folder-open me-1"></i>Materials
+                    </button>
+                  </div>
+
+                  <?php $cid = (int) $c['id']; $materials = $studentData['materialsByCourse'][$cid] ?? []; ?>
+                  <div id="m-<?= (int) $c['id'] ?>" class="collapse mt-2">
+                    <?php if (!empty($materials)): ?>
+                      <div class="small fw-semibold text-uppercase text-muted">Materials</div>
+                      <ul class="list-unstyled mb-0">
+                        <?php foreach ($materials as $m): ?>
+                          <li class="d-flex justify-content-between align-items-center py-1 border-top">
+                            <span><?= esc($m['file_name']) ?></span>
+                            <a class="btn btn-sm btn-outline-primary" href="<?= base_url('materials/download/' . (int) $m['id']) ?>">Download</a>
+                          </li>
+                        <?php endforeach; ?>
+                      </ul>
+                    <?php else: ?>
+                      <div class="text-muted small"><i class="fa-regular fa-file-lines me-1"></i>No materials yet.</div>
+                    <?php endif; ?>
                   </div>
                 </li>
               <?php endforeach; ?>
@@ -37,12 +64,17 @@
     </div>
 
     <div class="col-md-6">
-      <div class="card shadow-sm h-100">
-        <div class="card-header fw-semibold">Available Courses</div>
-        <div class="card-body">
+      <div class="card shadow-sm h-100 border-0">
+        <div class="card-header bg-white fw-semibold d-flex align-items-center justify-content-between">
+          <span><i class="fa-solid fa-book-open text-primary me-2"></i>Available Courses</span>
+          <span class="badge text-bg-light border"><?= count($availableCourses ?? []) ?></span>
+        </div>
+        <div class="card-body" style="max-height:380px; overflow:auto;">
           <ul class="list-group list-group-flush" id="available-list">
             <?php if (empty($availableCourses)): ?>
-              <li class="list-group-item text-muted">No available courses.</li>
+              <li class="list-group-item text-center py-4">
+                <div class="text-muted"><i class="fa-regular fa-circle-check me-1"></i>No available courses.</div>
+              </li>
             <?php else: ?>
               <?php foreach ($availableCourses as $c): ?>
                 <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -52,11 +84,8 @@
                       <small class="text-muted d-block"><?= esc($c['description']) ?></small>
                     <?php endif; ?>
                   </div>
-                  <button
-                    class="btn btn-sm btn-primary enroll-btn"
-                    data-course-id="<?= (int) $c['id'] ?>"
-                  >
-                    Enroll
+                  <button class="btn btn-sm btn-primary enroll-btn" data-course-id="<?= (int) $c['id'] ?>">
+                    <i class="fa-solid fa-plus me-1"></i>Enroll
                   </button>
                 </li>
               <?php endforeach; ?>
@@ -67,19 +96,15 @@
     </div>
   </div>
 
-  <div class="card shadow-sm mt-3">
-    <div class="card-header fw-semibold">Recent Grades</div>
-    <div class="card-body">
-      <p class="text-muted mb-0">No grades available.</p>
-    </div>
-  </div>
 </div>
+<?= $this->endSection() ?>
 
-<!-- jQuery (include if not already in your base template) -->
+<?= $this->section('scripts') ?>
+<!-- jQuery (student page specific) -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 
 <script>
-  // CSRF integration (CodeIgniter 4)
+  // CSRF integration
   const csrfTokenName = '<?= esc(csrf_token()) ?>';
   const csrfHash      = '<?= esc(csrf_hash()) ?>';
 
@@ -120,8 +145,12 @@
             '</div>' +
           '</li>'
         );
+        // Remove placeholder if this is the first enrolled item
+        $('#enrolled-empty').remove();
         $('#enrolled-list').append(enrolledLi);
         li.remove();
+        // Refresh to fetch latest materials for all courses
+        window.location.reload();
       } else {
         showAlert('warning', (res && res.message) ? res.message : 'Unable to enroll.');
         btn.prop('disabled', false).text('Enroll');

@@ -137,11 +137,26 @@ class Auth extends BaseController
             // Compute available = active minus enrolled
             $enrolledIds = array_map(fn($c) => (int) $c['id'], $enrolled);
             $available   = array_values(array_filter($active, fn($c) => !in_array((int) $c['id'], $enrolledIds, true)));
+
+            // Fetch materials per enrolled course
+            $materialsByCourse = [];
+            $materialModel = new \App\Models\MaterialModel();
+            foreach ($enrolled as $c) {
+                $cid = (int) $c['id'];
+                $materialsByCourse[$cid] = $materialModel->getMaterialsByCourse($cid);
+            }
     
             $data['studentData'] = [
                 'enrolledCourses'  => $enrolled,
                 'availableCourses' => $available,
+                'materialsByCourse' => $materialsByCourse,
             ];
+        }
+
+        // If admin/instructor/teacher, provide active courses for Quick Upload
+        if (in_array(session()->get('role'), ['admin', 'instructor', 'teacher'], true)) {
+            $courses = new \App\Models\CourseModel();
+            $data['activeCourses'] = $courses->getActiveCourses();
         }
     
         return view('auth/dashboard', $data);
