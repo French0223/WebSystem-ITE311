@@ -21,3 +21,9 @@ $routes->get('/dashboard', 'Auth::dashboard');
 
 // Enrollment action
 $routes->post('/course/enroll', 'Course::enroll');
+
+// Materials management
+$routes->get('/admin/course/(:num)/upload', 'Materials::upload/$1');
+$routes->post('/admin/course/(:num)/upload', 'Materials::upload/$1');
+$routes->get('/materials/delete/(:num)', 'Materials::delete/$1');
+$routes->get('/materials/download/(:num)', 'Materials::download/$1');
