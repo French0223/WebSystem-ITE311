@@ -6,12 +6,14 @@ use CodeIgniter\Model;
 
 class NotificationModel extends Model
 {
-    protected $table            = 'notifications';
-    protected $primaryKey       = 'id';
-    protected $useAutoIncrement = true;
-    protected $returnType       = 'array';
-    protected $protectFields    = true;
-    protected $allowedFields    = ['user_id', 'message', 'is_read', 'created_at'];
+    protected $table         = 'notifications';
+    protected $primaryKey    = 'id';
+    protected $returnType    = 'array';
+    protected $useSoftDeletes = false;
+
+    protected $allowedFields = [
+        'user_id', 'message', 'is_read', 'created_at'
+    ];
 
     public function getUnreadCount(int $userId): int
     {
