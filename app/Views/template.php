@@ -89,6 +89,9 @@
     <script>
       (function () {
         const isLoggedIn = <?= !empty(session('role')) ? 'true' : 'false' ?>;
+        // CSRF support (CI4)
+        const CSRF_NAME = '<?= function_exists('csrf_token') ? csrf_token() : 'csrf_token' ?>';
+        const CSRF_HASH = '<?= function_exists('csrf_hash') ? csrf_hash() : '' ?>';
 
         // User menu
         function toggleDropdown() {
@@ -96,14 +99,44 @@
           if (el) el.classList.toggle('show');
         }
 
-        // Notifications menu
+        // Notifications menu (position near bell and toggle)
         function toggleNotifMenu() {
           const menu = document.getElementById('notifMenu');
           const userMenu = document.getElementById('userDropdown');
+          const bell = document.getElementById('notifToggle');
           if (userMenu) userMenu.classList.remove('show');
-          if (!menu) return;
+          if (!menu || !bell) return;
+          // Position the menu near the bell using viewport coordinates
+          try {
+            const rect = bell.getBoundingClientRect();
+            const width = 360; // should match #notifMenu width
+            menu.style.position = 'fixed';
+            menu.style.zIndex = '99999';
+            // Compute and clamp within viewport
+            const desiredTop = rect.bottom + 8;
+            const desiredLeft = rect.right - width;
+            const clampedTop = Math.max(8, Math.min(window.innerHeight - 8, desiredTop));
+            const clampedLeft = Math.max(8, Math.min(window.innerWidth - (width + 8), desiredLeft));
+            menu.style.top = clampedTop + 'px';
+            menu.style.left = clampedLeft + 'px';
+            // Ensure visible styling
+            menu.style.minWidth = width + 'px';
+            menu.style.background = '#fff';
+            menu.style.border = '1px solid rgba(0,0,0,.15)';
+          } catch (e) {}
           const open = menu.style.display === 'block';
-          menu.style.display = open ? 'none' : 'block';
+          const willOpen = !open;
+          menu.style.display = willOpen ? 'block' : 'none';
+          if (willOpen) {
+            // Force visible rendering in case any global styles interfere
+            menu.style.visibility = 'visible';
+            menu.style.opacity = '1';
+            menu.style.transform = 'none';
+            menu.style.pointerEvents = 'auto';
+          }
+          if (willOpen) {
+            try { loadNotifications(); } catch (e) {}
+          }
         }
 
         function renderNotifications(data) {
@@ -125,26 +158,38 @@
           var html = '<div class="notif-card">' +
                      '  <div class="notif-card-header">' +
                      '    <span>Notifications</span>' +
-                     (count > 0 ? '    <button id="markAllRead" class="btn btn-sm btn-outline-secondary">Mark all as Read</button>' : '') +
+                     '    <span class="badge bg-primary ms-2">' + count + '</span>' +
                      '  </div>' +
                      '  <div class="notif-card-body">';
 
           if (items.length === 0) {
-            html += '<div class="text-center text-muted small py-3">No new notifications.</div>';
+            html += '<div class="text-center text-muted small py-4">' +
+                    '  <i class="fa-regular fa-bell-slash d-block mb-2" style="font-size:1.25rem;"></i>' +
+                    '  No new notifications.' +
+                    '</div>';
           } else {
             items.forEach(function (n) {
               var isRead = false;
               if (n) {
-                // Support multiple conventions
-                isRead = (n.is_read === 1 || n.is_read === true || n.read === 1 || n.read === true || n.status === 'read');
+                // Support multiple conventions and types (int, string, bool)
+                var flag = (n.hasOwnProperty('is_read') ? n.is_read : (n.hasOwnProperty('read') ? n.read : undefined));
+                if (flag !== undefined) {
+                  isRead = (flag == 1 || flag === true || String(flag).toLowerCase() === 'true');
+                }
+                if (!isRead && n.status) {
+                  isRead = (String(n.status).toLowerCase() === 'read');
+                }
               }
               html += '\
-                <div class="notif-item d-flex justify-content-between align-items-start' + (isRead ? ' read' : '') + '">\
-                  <div class="me-3 flex-grow-1">\
-                    <div class="title">' + (n && n.message ? n.message : '') + '</div>\
-                    <div class="time">' + (n && n.created_at ? n.created_at : '') + '</div>\
+                <div class="notif-item d-flex align-items-center justify-content-between border rounded-3 p-2' + (isRead ? ' read bg-light opacity-75' : '') + '">\
+                  <div class="d-flex align-items-start me-3 flex-grow-1">\
+                    <i class="fa-solid fa-bell text-primary me-2 mt-1"></i>\
+                    <div>\
+                      <div class="title">' + (n && n.message ? n.message : '') + '</div>\
+                      <div class="time small text-muted">' + (n && n.created_at ? n.created_at : '') + '</div>\
+                    </div>\
                   </div>\
-                  ' + (!isRead ? ('<div class="notif-actions"></div>') : '') + '\
+                  ' + (!isRead ? ('<div class="notif-actions d-flex align-items-center"><button class="btn btn-link btn-sm p-0 text-primary text-decoration-none lh-1 d-inline-flex align-items-center justify-content-center" data-id="' + (n && n.id ? n.id : '') + '" title="Mark as read" aria-label="Mark as read"><i class="fa-solid fa-check"></i></button></div>') : '') + '\
                 </div>';
             });
           }
@@ -157,30 +202,50 @@
               e.stopPropagation();
               const id = this.getAttribute('data-id');
               if (!id) return;
+              // Optimistic UI: mark as read immediately
+              const btnEl = this;
+              const itemEl = btnEl.closest('.notif-item');
+              const actionsEl = btnEl.parentElement;
+              const badge = document.getElementById('notifBadge');
+              btnEl.disabled = true;
+              if (itemEl) itemEl.classList.add('read');
+              if (actionsEl) actionsEl.remove();
+              if (badge && badge.style.display !== 'none') {
+                var n = parseInt(badge.textContent || '0', 10); if (!isNaN(n) && n > 0) { n = n - 1; }
+                if (n > 0) { badge.textContent = n; } else { badge.style.display = 'none'; }
+              }
               fetch('<?= site_url('notifications/mark_read') ?>/' + id, {
                 method: 'POST',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                credentials: 'same-origin'
+                headers: {
+                  'X-Requested-With': 'XMLHttpRequest',
+                  'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                credentials: 'same-origin',
+                body: CSRF_HASH ? new URLSearchParams({ [CSRF_NAME]: CSRF_HASH }) : undefined
               })
-                .then(function (res) { return res.json(); })
-                .then(function (ok) { if (ok && ok.success) loadNotifications(); });
+                .then(function (res) { if (!res.ok) throw new Error(res.status); return res.json(); })
+                .then(function (ok) { if (ok && ok.success) return; /* already updated UI */ else throw new Error('failed'); })
+                .catch(function (err) {
+                  console.error('Mark as read failed:', err);
+                  // Revert UI on failure
+                  if (itemEl) itemEl.classList.remove('read');
+                  // Recreate actions button if removed
+                  if (actionsEl && itemEl && !itemEl.querySelector('.notif-actions')) {
+                    const newActions = document.createElement('div'); newActions.className = 'notif-actions d-flex align-items-center';
+                    const newBtn = document.createElement('button'); newBtn.className = 'btn btn-link btn-sm p-0 text-primary text-decoration-none lh-1 d-inline-flex align-items-center justify-content-center'; newBtn.setAttribute('data-id', id); newBtn.setAttribute('title', 'Mark as read'); newBtn.setAttribute('aria-label', 'Mark as read'); newBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
+                    newActions.appendChild(newBtn);
+                    itemEl.appendChild(newActions);
+                  }
+                  if (btnEl) { btnEl.disabled = false; btnEl.className = 'btn btn-link btn-sm p-0 text-primary text-decoration-none lh-1 d-inline-flex align-items-center justify-content-center'; btnEl.innerHTML = '<i class="fa-solid fa-check"></i>'; }
+                  if (badge) {
+                    badge.style.display = 'inline-block';
+                    var n = parseInt(badge.textContent || '0', 10); if (!isNaN(n)) { badge.textContent = (n + 1); }
+                  }
+                });
             });
           });
 
-          var markAllBtn = document.getElementById('markAllRead');
-          if (markAllBtn) {
-            markAllBtn.addEventListener('click', function(e){
-              e.preventDefault();
-              var ids = Array.prototype.map.call(list.querySelectorAll('button[data-id]'), function(b){ return b.getAttribute('data-id'); }).filter(Boolean);
-              if (ids.length === 0) return;
-              var done = 0;
-              ids.forEach(function(id){
-                fetch('<?= site_url('notifications/mark_read') ?>/' + id, {
-                  method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin'
-                }).then(function(r){ return r.json(); }).then(function(){ done++; if (done === ids.length) loadNotifications(); });
-              });
-            });
-          }
+          // No "mark all" action
         }
 
         function loadNotifications() {
