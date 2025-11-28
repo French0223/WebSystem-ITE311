@@ -61,4 +61,3 @@ $isLoggedIn = !empty($role);
     <?php endif; ?>
   </div>
 </div>
-

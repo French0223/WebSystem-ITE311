@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\CourseModel;
 use App\Models\EnrollmentModel;
 use App\Models\NotificationModel;
+use App\Models\UserModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class Course extends BaseController
@@ -53,15 +54,65 @@ class Course extends BaseController
 
         // Build a friendly course name (fallback if key differs)
         $courseName = $course['name'] ?? $course['title'] ?? ('Course #' . $courseId);
+        $courseInstructorId = (int) ($course['instructor_id'] ?? 0);
+        $studentName = session('name') ?: 'A student';
 
-        // Create a notification for the enrolled student
+        // Create notifications for student + staff
         $notifModel = new NotificationModel();
-        $notifModel->insert([
-            'user_id'    => $userId,
-            'message'    => 'You have been enrolled in ' . $courseName,
-            'is_read'    => 0,
-            'created_at' => date('Y-m-d H:i:s'),
-        ]);
+        $userModel  = new UserModel();
+        $now = date('Y-m-d H:i:s');
+        $notifications = [];
+        $notified = [];
+
+        $addNotification = function (int $recipientId, string $message) use (&$notifications, &$notified, $now) {
+            if ($recipientId <= 0 || isset($notified[$recipientId])) {
+                return;
+            }
+            $notifications[] = [
+                'user_id'    => $recipientId,
+                'message'    => $message,
+                'is_read'    => 0,
+                'created_at' => $now,
+            ];
+            $notified[$recipientId] = true;
+        };
+
+        $studentMessage  = 'You have been enrolled in ' . $courseName;
+        $staffMessage    = $studentName . ' enrolled in ' . $courseName;
+
+        // Student notification
+        $addNotification($userId, $studentMessage);
+
+        // Notify assigned instructor/teacher, if available
+        if ($courseInstructorId > 0 && $courseInstructorId !== $userId) {
+            $addNotification($courseInstructorId, $staffMessage);
+        }
+
+        // Notify all admins about the new enrollment
+        $admins = $userModel->select('id')->where('role', 'admin')->findAll();
+        foreach ($admins as $admin) {
+            $adminId = (int) ($admin['id'] ?? 0);
+            if ($adminId > 0 && $adminId !== $userId) {
+                $addNotification($adminId, $staffMessage);
+            }
+        }
+
+        // Notify all teachers (excluding the student)
+        $teachers = $userModel->select('id')->where('role', 'teacher')->findAll();
+        foreach ($teachers as $teacher) {
+            $teacherId = (int) ($teacher['id'] ?? 0);
+            if ($teacherId > 0 && $teacherId !== $userId) {
+                $addNotification($teacherId, $staffMessage);
+            }
+        }
+
+        if (!empty($notifications)) {
+            if (count($notifications) === 1) {
+                $notifModel->insert($notifications[0]);
+            } else {
+                $notifModel->insertBatch($notifications);
+            }
+        }
 
         return $this->response->setJSON([
             'status'  => 'ok',
