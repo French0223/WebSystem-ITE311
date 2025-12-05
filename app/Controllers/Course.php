@@ -13,12 +13,22 @@ class Course extends BaseController
     public function index()
     {
         $courseModel = new CourseModel();
+        $mineOnly = $this->shouldFilterMyCourses();
+
+        if ($mineOnly) {
+            $courseModel->where('instructor_id', (int) session('user_id'));
+        }
+
         $courses = $courseModel->orderBy('title', 'ASC')->findAll();
+        $canManageCourses = $this->canManageCourses();
 
         return view('courses/index', [
             'title'      => 'Courses',
             'courses'    => $courses,
             'searchTerm' => '',
+            'canManageCourses' => $canManageCourses,
+            'mineOnly'        => $mineOnly,
+            'courseStatuses'   => ['draft' => 'Draft', 'active' => 'Active', 'inactive' => 'Inactive'],
         ]);
     }
 
@@ -26,13 +36,18 @@ class Course extends BaseController
     {
         $searchTerm = trim((string) ($this->request->getVar('search_term') ?? ''));
         $courseModel = new CourseModel();
+        $canManageCourses = $this->canManageCourses();
+        $mineOnly = $this->shouldFilterMyCourses();
+
+        if ($mineOnly) {
+            $courseModel->where('instructor_id', (int) session('user_id'));
+        }
 
         if ($searchTerm !== '') {
             $courseModel = $courseModel
                 ->groupStart()
                 ->like('title', $searchTerm)
                 ->orLike('description', $searchTerm)
-                ->orLike('category', $searchTerm)
                 ->groupEnd();
         }
 
@@ -50,7 +65,73 @@ class Course extends BaseController
             'title'      => 'Courses',
             'courses'    => $courses,
             'searchTerm' => $searchTerm,
+            'canManageCourses' => $canManageCourses,
+            'mineOnly'        => $mineOnly,
+            'courseStatuses'   => ['draft' => 'Draft', 'active' => 'Active', 'inactive' => 'Inactive'],
         ]);
+    }
+
+    public function create()
+    {
+        if ($redirect = $this->guardCourseManager()) {
+            return $redirect;
+        }
+
+        helper(['form']);
+
+        $rules = [
+            'title'       => 'required|min_length[3]|max_length[200]',
+            'course_code' => 'required|min_length[3]|max_length[50]|is_unique[courses.course_code]',
+            'term'        => 'required|min_length[2]|max_length[100]',
+            'semester'    => 'required|min_length[2]|max_length[100]',
+            'start_date'  => 'required|valid_date[Y-m-d]',
+            'end_date'    => 'required|valid_date[Y-m-d]',
+            'description' => 'permit_empty|string',
+            'status'      => 'required|in_list[draft,active,inactive]',
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('course_errors', $this->validator->getErrors())
+                ->with('course_modal_open', '1');
+        }
+
+        $startDate = $this->request->getPost('start_date');
+        $endDate   = $this->request->getPost('end_date');
+        if (strtotime($startDate) > strtotime($endDate)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('course_errors', ['end_date' => 'End date must be after start date.'])
+                ->with('course_modal_open', '1');
+        }
+
+        $courseModel = new CourseModel();
+        $now = date('Y-m-d H:i:s');
+
+        $data = [
+            'title'         => trim((string) $this->request->getPost('title')),
+            'course_code'   => strtoupper(trim((string) $this->request->getPost('course_code'))),
+            'term'          => trim((string) $this->request->getPost('term')),
+            'semester'      => trim((string) $this->request->getPost('semester')),
+            'start_date'    => $startDate,
+            'end_date'      => $endDate,
+            'description'   => trim((string) $this->request->getPost('description')),
+            'instructor_id' => (int) session('user_id'),
+            'status'        => $this->request->getPost('status'),
+            'created_at'    => $now,
+            'updated_at'    => $now,
+        ];
+
+        if (!$courseModel->insert($data)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('course_errors', $courseModel->errors() ?: ['general' => 'Unable to create course.'])
+                ->with('course_modal_open', '1');
+        }
+
+        session()->setFlashdata('success', 'Course created successfully.');
+        return redirect()->to(base_url('courses'));
     }
 
     public function enroll()
@@ -161,5 +242,39 @@ class Course extends BaseController
             'status'  => 'ok',
             'message' => 'Enrolled successfully.',
         ]);
+    }
+
+    private function canManageCourses(): bool
+    {
+        if (!session()->get('isLoggedIn')) {
+            return false;
+        }
+
+        return in_array(session()->get('role'), ['admin', 'instructor', 'teacher'], true);
+    }
+
+    private function guardCourseManager()
+    {
+        if (!session()->get('isLoggedIn')) {
+            session()->setFlashdata('error', 'Please login to continue.');
+            return redirect()->to(base_url('login'));
+        }
+
+        if (!$this->canManageCourses()) {
+            session()->setFlashdata('error', 'You are not authorized to manage courses.');
+            return redirect()->to(base_url('courses'));
+        }
+
+        return null;
+    }
+
+    private function shouldFilterMyCourses(): bool
+    {
+        if (!$this->canManageCourses()) {
+            return false;
+        }
+
+        $flag = $this->request->getVar('mine');
+        return (string) $flag === '1';
     }
 }

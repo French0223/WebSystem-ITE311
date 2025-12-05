@@ -19,33 +19,35 @@ class CreateCoursesTable extends Migration
                 'type' => 'VARCHAR',
                 'constraint' => 200,
             ],
+            'course_code' => [
+                'type' => 'VARCHAR',
+                'constraint' => 50,
+                'unique' => true,
+            ],
+            'term' => [
+                'type' => 'VARCHAR',
+                'constraint' => 100,
+            ],
+            'semester' => [
+                'type' => 'VARCHAR',
+                'constraint' => 100,
+            ],
             'description' => [
                 'type' => 'TEXT',
                 'null' => true,
+            ],
+            'start_date' => [
+                'type' => 'DATE',
+                'null' => false,
+            ],
+            'end_date' => [
+                'type' => 'DATE',
+                'null' => false,
             ],
             'instructor_id' => [
                 'type' => 'INT',
                 'constraint' => 11,
                 'unsigned' => true,
-            ],
-            'category' => [
-                'type' => 'VARCHAR',
-                'constraint' => 100,
-            ],
-            'level' => [
-                'type' => 'ENUM',
-                'constraint' => ['beginner', 'intermediate', 'advanced'],
-                'default' => 'beginner',
-            ],
-            'duration' => [
-                'type' => 'INT',
-                'constraint' => 11,
-                'comment' => 'Duration in hours',
-            ],
-            'price' => [
-                'type' => 'DECIMAL',
-                'constraint' => '10,2',
-                'default' => 0.00,
             ],
             'status' => [
                 'type' => 'ENUM',
