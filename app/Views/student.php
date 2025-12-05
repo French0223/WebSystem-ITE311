@@ -16,9 +16,15 @@
   <div class="row g-3">
     <div class="col-md-6">
       <div class="card shadow-sm h-100 border-0">
-        <div class="card-header bg-white fw-semibold d-flex align-items-center justify-content-between">
-          <span><i class="fa-solid fa-graduation-cap text-primary me-2"></i>Enrolled Courses</span>
-          <span class="badge text-bg-light border"><?= count($enrolledCourses ?? []) ?></span>
+        <div class="card-header bg-white fw-semibold">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span><i class="fa-solid fa-graduation-cap text-primary me-2"></i>Enrolled Courses</span>
+            <span class="badge text-bg-light border" id="enrolled-count"><?= count($enrolledCourses ?? []) ?></span>
+          </div>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-primary"></i></span>
+            <input type="text" id="enrolledSearch" class="form-control" placeholder="Search enrolled courses">
+          </div>
         </div>
         <div class="card-body" style="max-height:380px; overflow:auto;">
           <ul class="list-group list-group-flush" id="enrolled-list">
@@ -28,7 +34,10 @@
               </li>
             <?php else: ?>
               <?php foreach ($enrolledCourses as $c): ?>
-                <li class="list-group-item">
+                <?php
+                  $enrolledSearchBlob = strtolower(($c['title'] ?? '') . ' ' . ($c['description'] ?? ''));
+                ?>
+                <li class="list-group-item" data-search="<?= esc($enrolledSearchBlob) ?>">
                   <div class="d-flex justify-content-between align-items-start">
                     <div>
                       <div class="fw-semibold"><?= esc($c['title']) ?></div>
@@ -65,9 +74,15 @@
 
     <div class="col-md-6">
       <div class="card shadow-sm h-100 border-0">
-        <div class="card-header bg-white fw-semibold d-flex align-items-center justify-content-between">
-          <span><i class="fa-solid fa-book-open text-primary me-2"></i>Available Courses</span>
-          <span class="badge text-bg-light border"><?= count($availableCourses ?? []) ?></span>
+        <div class="card-header bg-white fw-semibold">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span><i class="fa-solid fa-book-open text-primary me-2"></i>Available Courses</span>
+            <span class="badge text-bg-light border" id="available-count"><?= count($availableCourses ?? []) ?></span>
+          </div>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-primary"></i></span>
+            <input type="text" id="availableSearch" class="form-control" placeholder="Search available courses">
+          </div>
         </div>
         <div class="card-body" style="max-height:380px; overflow:auto;">
           <ul class="list-group list-group-flush" id="available-list">
@@ -77,7 +92,10 @@
               </li>
             <?php else: ?>
               <?php foreach ($availableCourses as $c): ?>
-                <li class="list-group-item d-flex justify-content-between align-items-center">
+                <?php
+                  $availableSearchBlob = strtolower(($c['title'] ?? '') . ' ' . ($c['description'] ?? '') . ' ' . ($c['category'] ?? ''));
+                ?>
+                <li class="list-group-item d-flex justify-content-between align-items-center" data-search="<?= esc($availableSearchBlob) ?>">
                   <div>
                     <div class="fw-semibold"><?= esc($c['title']) ?></div>
                     <?php if (!empty($c['description'])): ?>
@@ -116,6 +134,38 @@
       '</div>'
     );
   }
+
+  function applyFilter($list, term, emptySelector) {
+    const value = term.trim().toLowerCase();
+    let visible = 0;
+
+    $list.find('li').each(function () {
+      const $item = $(this);
+      const haystack = ($item.data('search') || '').toString();
+      const shouldShow = value === '' || haystack.indexOf(value) !== -1 || $item.attr('id') === emptySelector.replace('#', '');
+
+      if ($item.attr('id') === emptySelector.replace('#', '')) {
+        $item.toggle(value === '');
+      } else {
+        $item.toggle(shouldShow);
+        if (shouldShow) {
+          visible++;
+        }
+      }
+    });
+
+    return visible;
+  }
+
+  $('#enrolledSearch').on('keyup input', function () {
+    const visible = applyFilter($('#enrolled-list'), $(this).val(), '#enrolled-empty');
+    $('#enrolled-count').text(visible);
+  });
+
+  $('#availableSearch').on('keyup input', function () {
+    const visible = applyFilter($('#available-list'), $(this).val(), '#available-empty');
+    $('#available-count').text(visible);
+  });
 
   $(document).on('click', '.enroll-btn', function (e) {
     e.preventDefault();

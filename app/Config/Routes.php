@@ -19,8 +19,18 @@ $routes->get('/logout', 'Auth::logout');
 // Role-specific dashboards
 $routes->get('/dashboard', 'Auth::dashboard');
 
+// Admin user management
+$routes->get('/admin/users', 'Admin::users');
+$routes->post('/admin/users', 'Admin::createUser');
+$routes->post('/admin/users/(:num)/update', 'Admin::updateUser/$1');
+
 // Enrollment action
 $routes->post('/course/enroll', 'Course::enroll');
+
+// Courses listing & search
+$routes->get('/courses', 'Course::index');
+$routes->get('/courses/search', 'Course::search');
+$routes->post('/courses/search', 'Course::search');
 
 // Materials management
 $routes->get('/admin/course/(:num)/upload', 'Materials::upload/$1');

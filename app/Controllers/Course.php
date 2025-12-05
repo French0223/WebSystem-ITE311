@@ -10,6 +10,49 @@ use CodeIgniter\HTTP\ResponseInterface;
 
 class Course extends BaseController
 {
+    public function index()
+    {
+        $courseModel = new CourseModel();
+        $courses = $courseModel->orderBy('title', 'ASC')->findAll();
+
+        return view('courses/index', [
+            'title'      => 'Courses',
+            'courses'    => $courses,
+            'searchTerm' => '',
+        ]);
+    }
+
+    public function search()
+    {
+        $searchTerm = trim((string) ($this->request->getVar('search_term') ?? ''));
+        $courseModel = new CourseModel();
+
+        if ($searchTerm !== '') {
+            $courseModel = $courseModel
+                ->groupStart()
+                ->like('title', $searchTerm)
+                ->orLike('description', $searchTerm)
+                ->orLike('category', $searchTerm)
+                ->groupEnd();
+        }
+
+        $courses = $courseModel->orderBy('title', 'ASC')->findAll();
+
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'courses'    => $courses,
+                'searchTerm' => $searchTerm,
+                'count'      => count($courses),
+            ]);
+        }
+
+        return view('courses/index', [
+            'title'      => 'Courses',
+            'courses'    => $courses,
+            'searchTerm' => $searchTerm,
+        ]);
+    }
+
     public function enroll()
     {
         // Require login and student role
