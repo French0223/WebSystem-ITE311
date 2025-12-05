@@ -5,6 +5,7 @@
   /** @var bool  $canManageCourses */
   /** @var array $courseStatuses */
   $session         = session();
+
   $courseErrors    = (array) ($session->getFlashdata('course_errors') ?? []);
   $courseOldInput  = (array) ($session->getFlashdata('_ci_old_input') ?? []);
   $courseModalOpen = (bool) ($session->getFlashdata('course_modal_open') ?? false);
@@ -96,7 +97,21 @@
                 <?= esc($status) ?>
               </span>
             </div>
-            <h5 class="card-title mb-1"><?= esc($title) ?></h5>
+            <div class="d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-1 mb-0"><?= esc($title) ?></h5>
+              <?php if ($canManageCourses): ?>
+                <button
+                  class="btn btn-sm btn-outline-secondary course-manage-btn"
+                  data-course-id="<?= $courseId ?>"
+                  data-course-title="<?= esc($title, 'attr') ?>"
+                  data-course-code="<?= esc($courseCode, 'attr') ?>"
+                  data-materials-url="<?= esc(base_url('admin/course/' . $courseId . '/upload'), 'attr') ?>"
+                  data-course-owns="<?= $ownsCourse ? '1' : '0' ?>"
+                >
+                  <i class="fa-solid fa-folder-open me-1"></i>Open
+                </button>
+              <?php endif; ?>
+            </div>
             <p class="text-muted mb-2 small"><?= esc($term) ?> <?= $semester ? '• ' . esc($semester) : '' ?></p>
             <p class="card-text text-muted flex-grow-1" style="min-height:72px;"><?= esc($description) ?></p>
             <div class="mt-3 text-muted small d-flex justify-content-between">
@@ -104,7 +119,7 @@
               <span><i class="fa-regular fa-flag me-1"></i><?= esc($endDate) ?></span>
             </div>
             <?php if ($canManageCourses): ?>
-              <div class="mt-3 d-flex justify-content-between align-items-center">
+              <div class="mt-3">
                 <span class="small text-muted">
                   <?php if ($ownsCourse): ?>
                     Assigned to you
@@ -112,15 +127,6 @@
                     Instructor ID: <?= esc($instructorId ?: 'N/A') ?>
                   <?php endif; ?>
                 </span>
-                <?php if ($ownsCourse): ?>
-                  <a class="btn btn-sm btn-outline-primary" href="<?= base_url('admin/course/' . $courseId . '/upload') ?>">
-                    <i class="fa-solid fa-paperclip me-1"></i>Materials
-                  </a>
-                <?php else: ?>
-                  <button class="btn btn-sm btn-outline-secondary" type="button" disabled title="Only the assigned instructor can manage materials">
-                    <i class="fa-solid fa-paperclip me-1"></i>Materials
-                  </button>
-                <?php endif; ?>
               </div>
             <?php endif; ?>
           </div>
@@ -214,6 +220,79 @@
       </div>
     </div>
   </div>
+
+  <!-- Course Manage Modal -->
+  <div class="modal fade" id="courseManageModal" tabindex="-1" aria-labelledby="courseManageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title text-primary" id="courseManageTitle">Course Tools</h5>
+            <small class="text-muted d-block" id="courseManageCode"></small>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <ul class="nav nav-tabs" id="courseManageTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#materialsTab" type="button" role="tab">Materials</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#enrollTab" type="button" role="tab">Enroll Student</button>
+            </li>
+          </ul>
+          <div class="tab-content pt-3">
+            <div class="tab-pane fade show active" id="materialsTab" role="tabpanel">
+              <p class="text-muted" id="materialsInfo">Manage the files shared with students.</p>
+              <div class="alert alert-warning d-none" id="materialsWarning">Only the assigned instructor can upload materials.</div>
+              <form id="materialsUploadForm" class="d-none" method="post" enctype="multipart/form-data">
+                <?= csrf_field() ?>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Upload new material</label>
+                  <input type="file" name="material" id="materialsFileInput" class="form-control" required>
+                  <div class="form-text">Allowed: PDF, PPT/PPTX, DOC/DOCX, ZIP • Max size: 10MB</div>
+                </div>
+                <div class="d-flex justify-content-end">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-upload me-1"></i>Upload
+                  </button>
+                </div>
+              </form>
+            </div>
+            <div class="tab-pane fade" id="enrollTab" role="tabpanel">
+              <?php if (!empty($students)): ?>
+                <form id="enrollForm" class="d-flex flex-column gap-3">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="course_id" id="manageCourseId">
+                  <div>
+                    <label class="form-label">Select student to enroll</label>
+                    <select class="form-select" name="student_id" required>
+                      <option value="">Choose student</option>
+                      <?php foreach ($students as $student): ?>
+                        <option value="<?= (int) $student['id'] ?>"><?= esc($student['name']) ?> (<?= esc($student['email']) ?>)</option>
+                      <?php endforeach; ?>
+                    </select>
+                  </div>
+                  <div class="d-flex justify-content-end gap-2">
+                    <button type="submit" class="btn btn-primary">
+                      <i class="fa-solid fa-user-plus me-1"></i>Enroll
+                    </button>
+                  </div>
+                  <div id="enrollNote" class="small text-muted">Invite students to this course.</div>
+                  <div id="enrollFeedback" class="small text-muted"></div>
+                </form>
+              <?php else: ?>
+                <div class="alert alert-info mb-0">No students available to enroll yet.</div>
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
 <?php endif; ?>
 <?= $this->endSection() ?>
 
@@ -230,10 +309,25 @@
   const canManageCourses = <?= $canManageCourses ? 'true' : 'false' ?>;
   const currentRole = '<?= esc($currentRole, 'js') ?>';
   const currentUserId = <?= (int) $currentUserId ?>;
+  const students = <?= json_encode($students ?? []) ?>;
+
+  const manageModalEl = document.getElementById('courseManageModal');
+  const manageModal = manageModalEl ? new bootstrap.Modal(manageModalEl) : null;
+  const $manageTitle = $('#courseManageTitle');
+  const $manageCode = $('#courseManageCode');
+  const $materialsForm = $('#materialsUploadForm');
+  const $materialsFileInput = $('#materialsFileInput');
+  const $materialsInfo = $('#materialsInfo');
+  const $materialsWarning = $('#materialsWarning');
+  const $enrollForm = $('#enrollForm');
+  const $enrollFeedback = $('#enrollFeedback');
+  const $enrollNote = $('#enrollNote');
+  const $manageCourseId = $('#manageCourseId');
 
   const escapeHtml = (value) => $('<div>').text(value ?? '').html();
 
   function renderCourses(courses) {
+
     if (!Array.isArray(courses) || courses.length === 0) {
       $container.html('<div class="col-12"><div class="alert alert-info">No courses found matching your search.</div></div>');
       return;
@@ -253,16 +347,6 @@
       const courseId = Number(course.id || 0);
       const ownsCourse = canManageCourses && (currentRole === 'admin' || instructorId === currentUserId);
 
-      const materialsButton = canManageCourses
-        ? ownsCourse
-          ? `<a class="btn btn-sm btn-outline-primary" href="<?= base_url('admin/course') ?>/${courseId}/upload">
-                <i class="fa-solid fa-paperclip me-1"></i>Materials
-             </a>`
-          : `<button class="btn btn-sm btn-outline-secondary" type="button" disabled title="Only the assigned instructor can manage materials">
-                <i class="fa-solid fa-paperclip me-1"></i>Materials
-             </button>`
-        : '';
-
       const ownershipText = canManageCourses
         ? (ownsCourse ? 'Assigned to you' : `Instructor ID: ${escapeHtml(instructorId || 'N/A')}`)
         : '';
@@ -275,7 +359,20 @@
                 <span class="badge bg-light text-dark">${escapeHtml(courseCode)}</span>
                 <span class="badge ${status === 'Active' ? 'bg-success' : (status === 'Draft' ? 'bg-secondary' : 'bg-warning text-dark')}">${escapeHtml(status)}</span>
               </div>
-              <h5 class="card-title mb-1">${escapeHtml(title)}</h5>
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-1 mb-0">${escapeHtml(title)}</h5>
+                ${canManageCourses ? `
+                  <button
+                    class="btn btn-sm btn-outline-secondary course-manage-btn"
+                    data-course-id="${courseId}"
+                    data-course-title="${escapeHtml(title)}"
+                    data-course-code="${escapeHtml(courseCode)}"
+                    data-materials-url="<?= base_url('admin/course') ?>/${courseId}/upload"
+                    data-course-owns="${ownsCourse ? '1' : '0'}"
+                  >
+                    <i class="fa-solid fa-folder-open me-1"></i>Open
+                  </button>` : ''}
+              </div>
               <p class="text-muted mb-2 small">${escapeHtml(term)} ${semester ? '• ' + escapeHtml(semester) : ''}</p>
               <p class="card-text text-muted flex-grow-1" style="min-height:72px;">${escapeHtml(description)}</p>
               <div class="mt-3 text-muted small d-flex justify-content-between">
@@ -283,9 +380,8 @@
                 <span><i class="fa-regular fa-flag me-1"></i> ${escapeHtml(endDate)}</span>
               </div>
               ${canManageCourses ? `
-                <div class="mt-3 d-flex justify-content-between align-items-center">
+                <div class="mt-3">
                   <span class="small text-muted">${ownershipText}</span>
-                  ${materialsButton}
                 </div>
               ` : ''}
             </div>
@@ -347,6 +443,82 @@
 
   if ($input.val()) {
     applyClientFilter($input.val());
+  }
+
+  $(document).on('click', '.course-manage-btn', function () {
+    if (!manageModal) return;
+
+    const $btn = $(this);
+    const courseId = Number($btn.data('course-id'));
+    const title = $btn.data('course-title') || 'Course';
+    const code = $btn.data('course-code') || '';
+    const materialsUrl = $btn.data('materials-url') || '';
+    const owns = String($btn.data('course-owns')) === '1';
+
+    $manageTitle.text(title);
+    $manageCode.text(code ? `Course Code: ${code}` : '');
+    $materialsWarning.toggleClass('d-none', owns);
+    $materialsInfo.text(owns ? 'Manage the files shared with students.' : 'Only the assigned instructor can upload materials.');
+    if ($materialsForm.length) {
+      if (owns && materialsUrl) {
+        $materialsForm.removeClass('d-none').attr('action', materialsUrl);
+        if ($materialsFileInput.length) {
+          $materialsFileInput.val('');
+        }
+      } else {
+        $materialsForm.addClass('d-none').attr('action', '');
+      }
+    }
+
+    if ($enrollForm.length) {
+      if (owns) {
+        $enrollForm.removeClass('d-none');
+        $enrollNote.text('Invite students to this course.');
+      } else {
+        $enrollForm.addClass('d-none');
+        $enrollNote.text('Only the assigned instructor can enroll students.');
+      }
+      $enrollForm[0].reset();
+      $enrollFeedback.text('');
+      $manageCourseId.val(courseId);
+    }
+
+    manageModal.show();
+  });
+
+  if ($enrollForm.length) {
+    $enrollForm.on('submit', function (e) {
+      e.preventDefault();
+      const payload = $enrollForm.serialize();
+      const studentId = Number($enrollForm.find('[name="student_id"]').val());
+      const courseId = Number($manageCourseId.val());
+
+      if (!studentId || !courseId) {
+        $enrollFeedback.text('Select a student to enroll.');
+        return;
+      }
+
+      $enrollFeedback.text('Enrolling student...');
+
+      $.post('<?= site_url('courses/assign') ?>', payload)
+        .done(function (response) {
+          $enrollFeedback.text(response.message || 'Student enrolled.');
+          $enrollForm[0].reset();
+          updateCsrf(response.csrf);
+        })
+        .fail(function (xhr) {
+          const msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Unable to enroll.';
+          $enrollFeedback.text(msg);
+          if (xhr.responseJSON && xhr.responseJSON.csrf) {
+            updateCsrf(xhr.responseJSON.csrf);
+          }
+        });
+    });
+  }
+
+  function updateCsrf(newHash) {
+    if (!newHash) return;
+    $('input[name="<?= esc(csrf_token()) ?>"]').val(newHash);
   }
 
   <?php if (!empty($canManageCourses)): ?>
