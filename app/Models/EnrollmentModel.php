@@ -35,4 +35,18 @@ class EnrollmentModel extends Model
             ->orderBy('enrollments.enrollment_date', 'DESC')
             ->findAll();
     }
+
+    public function enrollStudent(int $courseId, int $studentId): bool
+    {
+        $exists = $this->isAlreadyEnrolled($studentId, $courseId);
+        if ($exists) {
+            return true;
+        }
+
+        return (bool) $this->insert([
+            'user_id'         => $studentId,
+            'course_id'       => $courseId,
+            'enrollment_date' => date('Y-m-d H:i:s'),
+        ]);
+    }
 }

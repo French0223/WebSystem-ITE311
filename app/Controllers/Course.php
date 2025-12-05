@@ -21,6 +21,7 @@ class Course extends BaseController
 
         $courses = $courseModel->orderBy('title', 'ASC')->findAll();
         $canManageCourses = $this->canManageCourses();
+        $students = $canManageCourses ? $this->getStudentOptions() : [];
 
         return view('courses/index', [
             'title'      => 'Courses',
@@ -28,7 +29,61 @@ class Course extends BaseController
             'searchTerm' => '',
             'canManageCourses' => $canManageCourses,
             'mineOnly'        => $mineOnly,
+            'students'        => $students,
             'courseStatuses'   => ['draft' => 'Draft', 'active' => 'Active', 'inactive' => 'Inactive'],
+        ]);
+    }
+
+    public function assignStudent()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_UNAUTHORIZED)
+                ->setJSON(['status' => 'error', 'message' => 'Please login first.', 'csrf' => csrf_hash()]);
+        }
+
+        if (!$this->canManageCourses()) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_FORBIDDEN)
+                ->setJSON(['status' => 'error', 'message' => 'Unauthorized.', 'csrf' => csrf_hash()]);
+        }
+
+        $courseId = (int) $this->request->getPost('course_id');
+        $studentId = (int) $this->request->getPost('student_id');
+
+        if ($courseId <= 0 || $studentId <= 0) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)
+                ->setJSON(['status' => 'error', 'message' => 'Invalid request.', 'csrf' => csrf_hash()]);
+        }
+
+        $courseModel = new CourseModel();
+        $course = $courseModel->find($courseId);
+        if (!$course) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_NOT_FOUND)
+                ->setJSON(['status' => 'error', 'message' => 'Course not found.', 'csrf' => csrf_hash()]);
+        }
+
+        $isAdmin = session('role') === 'admin';
+        if (!$isAdmin && (int) ($course['instructor_id'] ?? 0) !== (int) session('user_id')) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_FORBIDDEN)
+                ->setJSON(['status' => 'error', 'message' => 'You can only manage your courses.', 'csrf' => csrf_hash()]);
+        }
+
+        $userModel = new UserModel();
+        $student = $userModel->where('id', $studentId)->where('role', 'student')->first();
+        if (!$student) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)
+                ->setJSON(['status' => 'error', 'message' => 'Student not found.', 'csrf' => csrf_hash()]);
+        }
+
+        $enrollments = new EnrollmentModel();
+        if (!$enrollments->enrollStudent($courseId, $studentId)) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)
+                ->setJSON(['status' => 'error', 'message' => 'Unable to enroll student.', 'csrf' => csrf_hash()]);
+        }
+
+        return $this->response->setJSON([
+            'status'  => 'ok',
+            'message' => $student['name'] . ' assigned to ' . ($course['title'] ?? 'course') . '.',
+            'csrf'    => csrf_hash(),
         ]);
     }
 
@@ -67,6 +122,7 @@ class Course extends BaseController
             'searchTerm' => $searchTerm,
             'canManageCourses' => $canManageCourses,
             'mineOnly'        => $mineOnly,
+            'students'        => $canManageCourses ? $this->getStudentOptions() : [],
             'courseStatuses'   => ['draft' => 'Draft', 'active' => 'Active', 'inactive' => 'Inactive'],
         ]);
     }
@@ -276,5 +332,14 @@ class Course extends BaseController
 
         $flag = $this->request->getVar('mine');
         return (string) $flag === '1';
+    }
+
+    private function getStudentOptions(): array
+    {
+        $userModel = new UserModel();
+        return $userModel->select('id, name, email')
+            ->where('role', 'student')
+            ->orderBy('name', 'ASC')
+            ->findAll();
     }
 }

@@ -78,38 +78,6 @@ class Materials extends BaseController
         ]);
     }
 
-    public function delete($material_id)
-    {
-        if (!session()->get('isLoggedIn')) {
-            session()->setFlashdata('error', 'Please login first.');
-            return redirect()->to(base_url('login'));
-        }
-
-        $model    = new MaterialModel();
-        $material = $model->find((int) $material_id);
-
-        if (!$material) {
-            session()->setFlashdata('error', 'Material not found.');
-            return redirect()->back();
-        }
-
-        $courseId = (int) $material['course_id'];
-        $course   = $this->getCourse($courseId);
-        if (!$course || !$this->canManageCourse($course)) {
-            session()->setFlashdata('error', 'You can only manage materials for courses assigned to you.');
-            return redirect()->to(base_url('courses?mine=1'));
-        }
-
-        $absPath = WRITEPATH . 'uploads/' . $material['file_path'];
-        if (is_file($absPath)) {
-            @unlink($absPath);
-        }
-
-        $model->delete((int) $material_id);
-        session()->setFlashdata('success', 'Material deleted.');
-        return redirect()->back();
-    }
-
     public function download($material_id)
     {
         if (!session()->get('isLoggedIn')) {
