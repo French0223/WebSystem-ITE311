@@ -93,14 +93,16 @@
             <?php else: ?>
               <?php foreach ($availableCourses as $c): ?>
                 <?php
-                  $availableSearchBlob = strtolower(($c['title'] ?? '') . ' ' . ($c['description'] ?? '') . ' ' . ($c['category'] ?? ''));
+                  $availableSearchBlob = strtolower(($c['title'] ?? '') . ' ' . ($c['description'] ?? ''));
                 ?>
+
                 <li class="list-group-item d-flex justify-content-between align-items-center" data-search="<?= esc($availableSearchBlob) ?>">
                   <div>
                     <div class="fw-semibold"><?= esc($c['title']) ?></div>
                     <?php if (!empty($c['description'])): ?>
                       <small class="text-muted d-block"><?= esc($c['description']) ?></small>
                     <?php endif; ?>
+
                   </div>
                   <button class="btn btn-sm btn-primary enroll-btn" data-course-id="<?= (int) $c['id'] ?>">
                     <i class="fa-solid fa-plus me-1"></i>Enroll

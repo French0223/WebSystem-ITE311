@@ -9,7 +9,14 @@
         </div>
         <div>
             <h5 class="m-0">Upload Course Material</h5>
-            <small class="text-muted">Course #<?= esc($courseId ?? '') ?> • Attach lecture notes, slides, or handouts</small>
+            <?php if (!empty($course)): ?>
+                <small class="text-muted">
+                    <?= esc($course['title'] ?? 'Course #' . ($courseId ?? '')) ?>
+                    • Code: <?= esc($course['course_code'] ?? 'N/A') ?>
+                </small>
+            <?php else: ?>
+                <small class="text-muted">Course #<?= esc($courseId ?? '') ?></small>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -42,7 +49,7 @@
                         </div>
 
                         <div class="d-flex gap-2 justify-content-end">
-                            <a href="<?= base_url('dashboard') ?>" class="btn btn-outline-secondary">Cancel</a>
+                            <a href="<?= !empty($course) ? base_url('courses?mine=1') : base_url('dashboard') ?>" class="btn btn-outline-secondary">Cancel</a>
                             <button type="submit" class="btn btn-primary">
                                 <i class="fa-solid fa-upload me-1"></i> Upload
                             </button>

@@ -2,8 +2,9 @@
 
 namespace App\Controllers;
 
-use App\Models\MaterialModel;
+use App\Models\CourseModel;
 use App\Models\EnrollmentModel;
+use App\Models\MaterialModel;
 
 class Materials extends BaseController
 {
@@ -14,10 +15,11 @@ class Materials extends BaseController
             return redirect()->to(base_url('login'));
         }
 
-        $role = (string) session()->get('role');
-        if (!in_array($role, ['admin', 'teacher'], true)) {
-            session()->setFlashdata('error', 'Unauthorized.');
-            return redirect()->to(base_url('dashboard'));
+        $courseId = (int) $course_id;
+        $course   = $this->getCourse($courseId);
+        if (!$course || !$this->canManageCourse($course)) {
+            session()->setFlashdata('error', 'You can only manage materials for courses assigned to you.');
+            return redirect()->to(base_url('courses?mine=1'));
         }
 
         if ($this->request->getMethod() === 'POST') {
@@ -55,7 +57,7 @@ class Materials extends BaseController
 
             $model = new MaterialModel();
             $saved = $model->insertMaterial([
-                'course_id'  => (int) $course_id,
+                'course_id'  => $courseId,
                 'file_name'  => $originalName,
                 'file_path'  => $relativeDir . '/' . $newName,
                 'created_at' => date('Y-m-d H:i:s'),
@@ -67,10 +69,13 @@ class Materials extends BaseController
                 session()->setFlashdata('error', 'Failed to save record.');
             }
 
-            return redirect()->to(base_url('dashboard'));
+            return redirect()->to(base_url('courses?mine=1'));
         }
 
-        return view('materials/upload', ['courseId' => (int) $course_id]);
+        return view('materials/upload', [
+            'courseId' => $courseId,
+            'course'   => $course,
+        ]);
     }
 
     public function delete($material_id)
@@ -80,18 +85,19 @@ class Materials extends BaseController
             return redirect()->to(base_url('login'));
         }
 
-        $role = (string) session()->get('role');
-        if (!in_array($role, ['admin', 'teacher'], true)) {
-            session()->setFlashdata('error', 'Unauthorized.');
-            return redirect()->to(base_url('dashboard'));
-        }
-
         $model    = new MaterialModel();
         $material = $model->find((int) $material_id);
 
         if (!$material) {
             session()->setFlashdata('error', 'Material not found.');
             return redirect()->back();
+        }
+
+        $courseId = (int) $material['course_id'];
+        $course   = $this->getCourse($courseId);
+        if (!$course || !$this->canManageCourse($course)) {
+            session()->setFlashdata('error', 'You can only manage materials for courses assigned to you.');
+            return redirect()->to(base_url('courses?mine=1'));
         }
 
         $absPath = WRITEPATH . 'uploads/' . $material['file_path'];
@@ -118,15 +124,23 @@ class Materials extends BaseController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
+        $courseId = (int) $material['course_id'];
+        $course   = $this->getCourse($courseId);
+        if (!$course) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
         $role = (string) session()->get('role');
         if ($role === 'student') {
             $userId   = (int) session()->get('user_id');
-            $courseId = (int) $material['course_id'];
             $enrollments = new EnrollmentModel();
             if (!$enrollments->isAlreadyEnrolled($userId, $courseId)) {
                 session()->setFlashdata('error', 'Access denied.');
                 return redirect()->to(base_url('dashboard'));
             }
+        } elseif (in_array($role, ['teacher', 'instructor'], true) && !$this->canManageCourse($course)) {
+            session()->setFlashdata('error', 'You can only access materials for your assigned courses.');
+            return redirect()->to(base_url('courses?mine=1'));
         }
 
         $absPath = WRITEPATH . 'uploads/' . $material['file_path'];
@@ -135,5 +149,29 @@ class Materials extends BaseController
         }
 
         return $this->response->download($absPath, null);
+    }
+
+    private function getCourse(int $courseId): ?array
+    {
+        $courseModel = new CourseModel();
+        return $courseModel->find($courseId);
+    }
+
+    private function canManageCourse(array $course): bool
+    {
+        if (!session()->get('isLoggedIn')) {
+            return false;
+        }
+
+        $role = (string) session()->get('role');
+        if ($role === 'admin') {
+            return true;
+        }
+
+        if (in_array($role, ['teacher', 'instructor'], true)) {
+            return (int) ($course['instructor_id'] ?? 0) === (int) session()->get('user_id');
+        }
+
+        return false;
     }
 }
