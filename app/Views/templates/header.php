@@ -15,11 +15,11 @@ $isLoggedIn = !empty($role);
         <?php if ($isLoggedIn): ?>
           <?php if ($role === 'admin'): ?>
             <li class="nav-item"><a class="nav-link" href="<?= base_url('dashboard') ?>">Admin Dashboard</a></li>
-            <li class="nav-item"><a class="nav-link" href="#">User Management</a></li>
-            <li class="nav-item"><a class="nav-link" href="#">Courses Management</a></li>
+            <li class="nav-item"><a class="nav-link" href="<?= base_url('admin/users') ?>">User Management</a></li>
+            <li class="nav-item"><a class="nav-link" href="<?= base_url('courses') ?>">Courses Management</a></li>
           <?php elseif ($role === 'teacher'): ?>
             <li class="nav-item"><a class="nav-link" href="<?= base_url('dashboard') ?>">Teacher Dashboard</a></li>
-            <li class="nav-item"><a class="nav-link" href="#">My Courses</a></li>
+            <li class="nav-item"><a class="nav-link" href="<?= base_url('courses') ?>">Courses</a></li>
             <li class="nav-item"><a class="nav-link" href="#">New Lesson</a></li>
           <?php elseif ($role === 'student'): ?>
             <li class="nav-item"><a class="nav-link" href="<?= base_url('dashboard') ?>">Student Dashboard</a></li>
