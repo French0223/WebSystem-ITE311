@@ -174,6 +174,47 @@ class Auth extends BaseController
         if (in_array(session()->get('role'), ['admin', 'instructor', 'teacher'], true)) {
             $courses = new \App\Models\CourseModel();
             $data['activeCourses'] = $courses->getActiveCourses();
+            
+            // For teachers/instructors, also fetch their assigned courses
+            if (in_array(session()->get('role'), ['instructor', 'teacher'], true)) {
+                $userId = (int) session()->get('user_id');
+                $assignedCourses = $courses->where('instructor_id', $userId)
+                    ->orderBy('title', 'ASC')
+                    ->findAll();
+                
+                // Get instructor information for each course
+                $userModel = new \App\Models\UserModel();
+                $instructorsById = [];
+                foreach ($assignedCourses as &$course) {
+                    $instructorId = (int) ($course['instructor_id'] ?? 0);
+                    if ($instructorId > 0 && !isset($instructorsById[$instructorId])) {
+                        $instructor = $userModel->select('id, name, email')
+                            ->where('id', $instructorId)
+                            ->first();
+                        if ($instructor) {
+                            $instructorsById[$instructorId] = [
+                                'id' => $instructor['id'],
+                                'name' => $instructor['name'],
+                                'email' => $instructor['email']
+                            ];
+                        }
+                    }
+                    $course['instructor'] = $instructorsById[$instructorId] ?? null;
+                }
+                
+                $data['assignedCourses'] = $assignedCourses;
+                
+                // Get instructors and students for the modal functionality
+                $data['instructors'] = $userModel->select('id, name, email')
+                    ->whereIn('role', ['instructor', 'teacher', 'admin'])
+                    ->orderBy('name', 'ASC')
+                    ->findAll();
+                $data['students'] = $userModel->select('id, name, email')
+                    ->where('role', 'student')
+                    ->orderBy('name', 'ASC')
+                    ->findAll();
+                $data['instructorsById'] = $instructorsById;
+            }
         }
     
         return view('auth/dashboard', $data);

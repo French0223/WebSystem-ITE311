@@ -87,12 +87,12 @@
         $courseId     = (int) ($course['id'] ?? 0);
         $instructorId = (int) ($course['instructor_id'] ?? 0);
         $instructor   = $instructorsById[$instructorId] ?? ['name' => 'Unassigned', 'email' => ''];
-        $ownsCourse   = $canManageCourses && ($currentRole === 'admin' || $instructorId === $currentUserId);
+        $ownsCourse   = $canManageCourses && ($instructorId === $currentUserId);
         $searchBlob   = strtolower($title . ' ' . $description . ' ' . $courseCode . ' ' . $term . ' ' . $semester);
       ?>
       <div class="col-md-4 course-column" data-search="<?= esc($searchBlob) ?>">
-        <div class="card course-card h-100 border-0 shadow-sm">
-          <div class="card-body d-flex flex-column">
+        <div class="card course-card h-100 border-0 shadow-sm" style="position: relative;">
+          <div class="card-body d-flex flex-column" style="position: relative; z-index: 1;">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span class="badge bg-light text-dark"><?= esc($courseCode) ?></span>
               <span class="badge <?= $status === 'Active' ? 'bg-success' : ($status === 'Draft' ? 'bg-secondary' : 'bg-warning text-dark') ?>">
@@ -102,26 +102,40 @@
             <div class="d-flex justify-content-between align-items-center">
               <h5 class="card-title mb-1 mb-0"><?= esc($title) ?></h5>
               <?php if ($canManageCourses): ?>
-                <button
-                  class="btn btn-sm btn-primary course-manage-btn"
-                  data-bs-toggle="modal"
-                  data-bs-target="#courseManageModal"
-                  data-course-id="<?= $courseId ?>"
-                  data-course-title="<?= esc($title, 'attr') ?>"
-                  data-course-code="<?= esc($courseCode, 'attr') ?>"
-                  data-course-term="<?= esc($term, 'attr') ?>"
-                  data-course-semester="<?= esc($semester, 'attr') ?>"
-                  data-course-status="<?= esc($statusRaw, 'attr') ?>"
-                  data-course-description="<?= esc($description, 'attr') ?>"
-                  data-course-start="<?= esc($course['start_date'] ?? '', 'attr') ?>"
-                  data-course-end="<?= esc($course['end_date'] ?? '', 'attr') ?>"
-                  data-instructor-name="<?= esc($instructor['name'] ?? '', 'attr') ?>"
-                  data-instructor-email="<?= esc($instructor['email'] ?? '', 'attr') ?>"
-                  data-materials-url="<?= esc(base_url('admin/course/' . $courseId . '/upload'), 'attr') ?>"
-                  data-course-owns="<?= $ownsCourse ? '1' : '0' ?>"
-                >
-                  <i class="fa-solid fa-folder-open me-1"></i>Open
-                </button>
+                <?php if ($currentRole === 'admin' || $ownsCourse): ?>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-primary course-manage-btn"
+                    data-bs-toggle="modal"
+                    data-bs-target="#courseManageModal"
+                    data-course-id="<?= $courseId ?>"
+                    data-course-title="<?= esc($title, 'attr') ?>"
+                    data-course-code="<?= esc($courseCode, 'attr') ?>"
+                    data-course-term="<?= esc($term, 'attr') ?>"
+                    data-course-semester="<?= esc($semester, 'attr') ?>"
+                    data-course-status="<?= esc($statusRaw, 'attr') ?>"
+                    data-course-description="<?= esc($description, 'attr') ?>"
+                    data-course-start="<?= esc($course['start_date'] ?? '', 'attr') ?>"
+                    data-course-end="<?= esc($course['end_date'] ?? '', 'attr') ?>"
+                    data-instructor-name="<?= esc($instructor['name'] ?? '', 'attr') ?>"
+                    data-instructor-email="<?= esc($instructor['email'] ?? '', 'attr') ?>"
+                    data-materials-url="<?= esc(base_url('admin/course/' . $courseId . '/upload'), 'attr') ?>"
+                    data-course-owns="<?= $ownsCourse ? '1' : '0' ?>"
+                    style="cursor: pointer; position: relative; z-index: 1000;"
+                  >
+                    <i class="fa-solid fa-folder-open me-1"></i>Open
+                  </button>
+                <?php else: ?>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-secondary"
+                    disabled
+                    title="This course is not assigned to you"
+                    style="cursor: not-allowed;"
+                  >
+                    <i class="fa-solid fa-lock me-1"></i>Locked
+                  </button>
+                <?php endif; ?>
               <?php endif; ?>
             </div>
             <p class="text-muted mb-2 small"><?= esc($term) ?> <?= $semester ? '• ' . esc($semester) : '' ?></p>
@@ -135,8 +149,10 @@
                 <span class="small text-muted">
                   <?php if ($ownsCourse): ?>
                     Assigned to you
+                  <?php elseif ($instructorId > 0 && isset($instructor['name'])): ?>
+                    Instructor: <?= esc($instructor['name']) ?>
                   <?php else: ?>
-                    Instructor ID: <?= esc($instructorId ?: 'N/A') ?>
+                    Unassigned
                   <?php endif; ?>
                 </span>
               </div>
@@ -505,6 +521,15 @@
   #courseManageModal .tab-pane {
     min-height: 400px;
   }
+  .course-manage-btn {
+    position: relative;
+    z-index: 10;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+  }
+  .course-card {
+    position: relative;
+  }
 </style>
 <script>
 (function ($) {
@@ -591,14 +616,14 @@
       const searchBlob = (title + ' ' + description + ' ' + courseCode + ' ' + term + ' ' + semester).toLowerCase();
       const instructorId = Number(course.instructor_id || 0);
       const courseId = Number(course.id || 0);
-      const ownsCourse = canManageCourses && (currentRole === 'admin' || instructorId === currentUserId);
+      const ownsCourse = canManageCourses && (instructorId === currentUserId);
 
       const instructor = instructorsById[instructorId] || {};
       const instructorName = instructor.name || 'Unassigned';
       const instructorEmail = instructor.email || '';
 
       const ownershipText = canManageCourses
-        ? (ownsCourse ? 'Assigned to you' : `Instructor ID: ${escapeHtml(instructorId || 'N/A')}`)
+        ? (ownsCourse ? 'Assigned to you' : (instructorId > 0 && instructor.name ? `Instructor: ${escapeHtml(instructor.name)}` : 'Unassigned'))
         : '';
 
       return `
@@ -611,9 +636,14 @@
               </div>
               <div class="d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-1 mb-0">${escapeHtml(title)}</h5>
-                ${canManageCourses ? `
+                ${canManageCourses ? (
+                  currentRole === 'admin' || ownsCourse
+                    ? `
                   <button
-                    class="btn btn-sm btn-outline-secondary course-manage-btn"
+                    type="button"
+                    class="btn btn-sm btn-primary course-manage-btn"
+                    data-bs-toggle="modal"
+                    data-bs-target="#courseManageModal"
                     data-course-id="${courseId}"
                     data-course-title="${escapeHtml(title)}"
                     data-course-code="${escapeHtml(courseCode)}"
@@ -627,9 +657,21 @@
                     data-instructor-email="${escapeHtml(instructorEmail)}"
                     data-materials-url="<?= base_url('admin/course') ?>/${courseId}/upload"
                     data-course-owns="${ownsCourse ? '1' : '0'}"
+                    style="cursor: pointer; position: relative; z-index: 1000;"
                   >
                     <i class="fa-solid fa-folder-open me-1"></i>Open
-                  </button>` : ''}
+                  </button>`
+                    : `
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-secondary"
+                    disabled
+                    title="This course is not assigned to you"
+                    style="cursor: not-allowed;"
+                  >
+                    <i class="fa-solid fa-lock me-1"></i>Locked
+                  </button>`
+                ) : ''}
               </div>
               <p class="text-muted mb-2 small">${escapeHtml(term)} ${semester ? '• ' + escapeHtml(semester) : ''}</p>
               <p class="card-text text-muted flex-grow-1" style="min-height:72px;">${escapeHtml(description)}</p>
@@ -775,92 +817,152 @@
     $peopleAllContainer.html(parts.length ? parts.join('') : '<div class="text-muted">No people yet for this course.</div>');
   }
 
+  // Listen for when the modal is shown and populate data
+  if (manageModalEl) {
+    $(manageModalEl).on('show.bs.modal', function (event) {
+      console.log('Modal show event triggered');
+      // Get the button that triggered the modal
+      const button = event.relatedTarget;
+      console.log('Related target:', button);
+      
+      if (!button) {
+        console.warn('No related target found');
+        return;
+      }
+      
+      if (!button.classList.contains('course-manage-btn')) {
+        console.warn('Button is not a course-manage-btn');
+        return;
+      }
+      
+      const $btn = $(button);
+      console.log('Calling handleCourseManageClick');
+      handleCourseManageClick($btn, event);
+    });
+  }
+  
+  // Also handle click directly as backup
   $(document).on('click', '.course-manage-btn', function (e) {
-    e.preventDefault();
-    if (!manageModal) return;
-
+    console.log('Course manage button clicked directly');
     const $btn = $(this);
-    const courseId = Number($btn.data('course-id'));
-    const title = $btn.data('course-title') || 'Course';
-    const code = $btn.data('course-code') || '';
-    const term = $btn.data('course-term') || '';
-    const semester = $btn.data('course-semester') || '';
-    const status = ($btn.data('course-status') || 'draft').toString().toLowerCase();
-    const description = $btn.data('course-description') || 'No description provided yet.';
-    const startDate = $btn.data('course-start') || '';
-    const endDate = $btn.data('course-end') || '';
-    const instructorName = $btn.data('instructor-name') || 'Unassigned';
-    const instructorEmail = $btn.data('instructor-email') || '';
-    const materialsUrl = $btn.data('materials-url') || '';
-    const owns = String($btn.data('course-owns')) === '1';
-
-    // Ensure Home tab is active
-    if (overviewTabBtn) {
-      bootstrap.Tab.getOrCreateInstance(overviewTabBtn).show();
-    }
-
-    $manageTitle.text(title);
-    $manageCode.text(code ? `Course Code: ${code}` : '');
-    
-    // Update Home tab content
-    $('#overviewCourseTitleHeader').text(title);
-    const $overviewCourseCodeValue = $('#overviewCourseCodeValue');
-    $overviewCourseCodeValue.text(code || '—');
-
-    const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
-    $overviewStatus.text(statusLabel);
-    $overviewStatus
-      .removeClass('bg-success bg-secondary bg-warning text-dark')
-      .addClass(status === 'active' ? 'bg-success' : (status === 'draft' ? 'bg-secondary' : 'bg-warning text-dark'));
-
-    $overviewTerm.text(term || '—');
-    $overviewSemester.text(semester || '—');
-    const startLabel = startDate ? new Date(startDate).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
-    const endLabel = endDate ? new Date(endDate).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
-    $overviewStart.text(startLabel);
-    $overviewEnd.text(endLabel);
-    $overviewDescription.text(description || '—');
-    $overviewInstructorName.text(instructorName || 'Unassigned');
-    $overviewInstructorEmail.text(instructorEmail || '—');
-
-    // People tab defaults
-    $peopleInstructorCourseId.val(courseId);
-    $peopleStudentCourseId.val(courseId);
-    $manageCourseId.val(courseId);
-    // Set instructor info immediately from data attributes
-    $peopleInstructorName.text(instructorName || 'Unassigned');
-    $peopleInstructorEmail.text(instructorEmail || '—');
-    setPeopleFilter('instructor');
-    fetchPeople(courseId);
-
-    $materialsWarning.toggleClass('d-none', owns);
-    $materialsInfo.text(owns ? 'Manage the files shared with students.' : 'Only the assigned instructor can upload materials.');
-    if ($materialsForm.length) {
-      if (owns && materialsUrl) {
-        $materialsForm.removeClass('d-none').attr('action', materialsUrl);
-        if ($materialsFileInput.length) {
-          $materialsFileInput.val('');
-        }
-      } else {
-        $materialsForm.addClass('d-none').attr('action', '');
-      }
-    }
-
-    if ($enrollForm.length) {
-      if (owns) {
-        $enrollForm.removeClass('d-none');
-        $enrollNote.text('Invite students to this course.');
-      } else {
-        $enrollForm.addClass('d-none');
-        $enrollNote.text('Only the assigned instructor can enroll students.');
-      }
-      $enrollForm[0].reset();
-      $enrollFeedback.text('');
-      $manageCourseId.val(courseId);
-    }
-
-    manageModal.show();
+    // Store the button data for the modal event
+    $(this).data('clicked', true);
   });
+  
+  function handleCourseManageClick($btn, e) {
+    console.log('handleCourseManageClick called', $btn);
+    
+    try {
+      // Ensure modal element exists
+      if (!manageModalEl) {
+        console.error('Course manage modal element not found');
+        return;
+      }
+      
+      // Initialize modal if not already initialized
+      if (!manageModal) {
+        manageModal = new bootstrap.Modal(manageModalEl);
+      }
+      
+      const courseId = Number($btn.data('course-id'));
+      const title = $btn.data('course-title') || 'Course';
+      const code = $btn.data('course-code') || '';
+      const term = $btn.data('course-term') || '';
+      const semester = $btn.data('course-semester') || '';
+      const status = ($btn.data('course-status') || 'draft').toString().toLowerCase();
+      const description = $btn.data('course-description') || 'No description provided yet.';
+      const startDate = $btn.data('course-start') || '';
+      const endDate = $btn.data('course-end') || '';
+      const instructorName = $btn.data('instructor-name') || 'Unassigned';
+      const instructorEmail = $btn.data('instructor-email') || '';
+      const materialsUrl = $btn.data('materials-url') || '';
+      const owns = String($btn.data('course-owns')) === '1';
+      
+      console.log('Course data loaded:', { courseId, title, code });
+
+      // Ensure Home tab is active
+      if (overviewTabBtn) {
+        bootstrap.Tab.getOrCreateInstance(overviewTabBtn).show();
+      }
+
+      $manageTitle.text(title);
+      $manageCode.text(code ? `Course Code: ${code}` : '');
+      
+      // Update Home tab content
+      $('#overviewCourseTitleHeader').text(title);
+      const $overviewCourseCodeValue = $('#overviewCourseCodeValue');
+      $overviewCourseCodeValue.text(code || '—');
+
+      const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+      $overviewStatus.text(statusLabel);
+      $overviewStatus
+        .removeClass('bg-success bg-secondary bg-warning text-dark')
+        .addClass(status === 'active' ? 'bg-success' : (status === 'draft' ? 'bg-secondary' : 'bg-warning text-dark'));
+
+      $overviewTerm.text(term || '—');
+      $overviewSemester.text(semester || '—');
+      const startLabel = startDate ? new Date(startDate).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
+      const endLabel = endDate ? new Date(endDate).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
+      $overviewStart.text(startLabel);
+      $overviewEnd.text(endLabel);
+      $overviewDescription.text(description || '—');
+      $overviewInstructorName.text(instructorName || 'Unassigned');
+      $overviewInstructorEmail.text(instructorEmail || '—');
+
+      // People tab defaults
+      $peopleInstructorCourseId.val(courseId);
+      $peopleStudentCourseId.val(courseId);
+      $manageCourseId.val(courseId);
+      // Set instructor info immediately from data attributes
+      $peopleInstructorName.text(instructorName || 'Unassigned');
+      $peopleInstructorEmail.text(instructorEmail || '—');
+      setPeopleFilter('instructor');
+      fetchPeople(courseId);
+
+      $materialsWarning.toggleClass('d-none', owns);
+      $materialsInfo.text(owns ? 'Manage the files shared with students.' : 'Only the assigned instructor can upload materials.');
+      if ($materialsForm.length) {
+        if (owns && materialsUrl) {
+          $materialsForm.removeClass('d-none').attr('action', materialsUrl);
+          if ($materialsFileInput.length) {
+            $materialsFileInput.val('');
+          }
+        } else {
+          $materialsForm.addClass('d-none').attr('action', '');
+        }
+      }
+
+      // Check if enroll form elements exist before using them
+      const $enrollForm = $('#enrollForm');
+      const $enrollNote = $('#enrollNote');
+      const $enrollFeedback = $('#enrollFeedback');
+      
+      if ($enrollForm.length) {
+        if (owns) {
+          $enrollForm.removeClass('d-none');
+          if ($enrollNote.length) {
+            $enrollNote.text('Invite students to this course.');
+          }
+        } else {
+          $enrollForm.addClass('d-none');
+          if ($enrollNote.length) {
+            $enrollNote.text('Only the assigned instructor can enroll students.');
+          }
+        }
+        if ($enrollForm[0]) {
+          $enrollForm[0].reset();
+        }
+        if ($enrollFeedback.length) {
+          $enrollFeedback.text('');
+        }
+        $manageCourseId.val(courseId);
+      }
+
+      console.log('Modal content populated successfully');
+    } catch (error) {
+      console.error('Error in handleCourseManageClick:', error);
+    }
+  }
 
   $peopleFilterButtons.on('click', function () {
     const mode = $(this).data('people-filter') || 'instructor';

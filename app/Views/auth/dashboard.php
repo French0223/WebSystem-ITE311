@@ -5,6 +5,7 @@
     // Wrapper: load role-specific partials
     $role = $user['role'] ?? session('role');
     $name = $user['name'] ?? session('name');
+    $assignedCourses = $assignedCourses ?? [];
 
     switch ($role) {
       case 'admin':
@@ -12,7 +13,13 @@
         break;
     case 'instructor': // legacy role label
       case 'teacher':
-        echo view('teacher', ['name' => $name]);
+        echo view('teacher', [
+          'name' => $name,
+          'assignedCourses' => $assignedCourses ?? [],
+          'instructors' => $instructors ?? [],
+          'students' => $students ?? [],
+          'instructorsById' => $instructorsById ?? []
+        ]);
         break;
       case 'student':
         echo view('student', ['name' => $name]);
