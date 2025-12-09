@@ -22,6 +22,7 @@ class Course extends BaseController
         $courses = $courseModel->orderBy('title', 'ASC')->findAll();
         $canManageCourses = $this->canManageCourses();
         $students = $canManageCourses ? $this->getStudentOptions() : [];
+        $instructors = $canManageCourses ? $this->getInstructorOptions() : [];
 
         return view('courses/index', [
             'title'      => 'Courses',
@@ -30,6 +31,7 @@ class Course extends BaseController
             'canManageCourses' => $canManageCourses,
             'mineOnly'        => $mineOnly,
             'students'        => $students,
+            'instructors'     => $instructors,
             'courseStatuses'   => ['draft' => 'Draft', 'active' => 'Active', 'inactive' => 'Inactive'],
         ]);
     }
@@ -87,6 +89,72 @@ class Course extends BaseController
         ]);
     }
 
+    public function assignInstructor()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_UNAUTHORIZED)
+                ->setJSON(['status' => 'error', 'message' => 'Please login first.', 'csrf' => csrf_hash()]);
+        }
+
+        if (!$this->canManageCourses()) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_FORBIDDEN)
+                ->setJSON(['status' => 'error', 'message' => 'Unauthorized.', 'csrf' => csrf_hash()]);
+        }
+
+        $courseId = (int) $this->request->getPost('course_id');
+        $instructorId = (int) $this->request->getPost('instructor_id');
+
+        if ($courseId <= 0 || $instructorId <= 0) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)
+                ->setJSON(['status' => 'error', 'message' => 'Invalid request.', 'csrf' => csrf_hash()]);
+        }
+
+        $courseModel = new CourseModel();
+        $course = $courseModel->find($courseId);
+        if (!$course) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_NOT_FOUND)
+                ->setJSON(['status' => 'error', 'message' => 'Course not found.', 'csrf' => csrf_hash()]);
+        }
+
+        $isAdmin = session('role') === 'admin';
+        if (!$isAdmin && (int) ($course['instructor_id'] ?? 0) !== (int) session('user_id')) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_FORBIDDEN)
+                ->setJSON(['status' => 'error', 'message' => 'You can only manage your courses.', 'csrf' => csrf_hash()]);
+        }
+
+        $userModel = new UserModel();
+        $instructor = $userModel->where('id', $instructorId)
+            ->whereIn('role', ['instructor', 'teacher', 'admin'])
+            ->first();
+        
+        if (!$instructor) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)
+                ->setJSON(['status' => 'error', 'message' => 'Instructor not found.', 'csrf' => csrf_hash()]);
+        }
+
+        // Update the course with the new instructor
+        $updateData = [
+            'instructor_id' => $instructorId,
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+
+        if (!$courseModel->update($courseId, $updateData)) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)
+                ->setJSON(['status' => 'error', 'message' => 'Unable to assign instructor.', 'csrf' => csrf_hash()]);
+        }
+
+        return $this->response->setJSON([
+            'status'  => 'ok',
+            'message' => $instructor['name'] . ' assigned as instructor to ' . ($course['title'] ?? 'course') . '.',
+            'instructor' => [
+                'id' => $instructor['id'],
+                'name' => $instructor['name'],
+                'email' => $instructor['email']
+            ],
+            'csrf'    => csrf_hash(),
+        ]);
+    }
+
     public function search()
     {
         $searchTerm = trim((string) ($this->request->getVar('search_term') ?? ''));
@@ -108,11 +176,32 @@ class Course extends BaseController
 
         $courses = $courseModel->orderBy('title', 'ASC')->findAll();
 
+        // Build instructorsById for the response
+        $instructorsById = [];
+        $userModel = new UserModel();
+        $instructorIds = array_filter(array_map(function($course) {
+            return (int) ($course['instructor_id'] ?? 0);
+        }, $courses));
+        
+        if (!empty($instructorIds)) {
+            $instructors = $userModel->select('id, name, email')
+                ->whereIn('id', array_unique($instructorIds))
+                ->findAll();
+            foreach ($instructors as $instructor) {
+                $instructorsById[$instructor['id']] = [
+                    'id' => $instructor['id'],
+                    'name' => $instructor['name'],
+                    'email' => $instructor['email']
+                ];
+            }
+        }
+
         if ($this->request->isAJAX()) {
             return $this->response->setJSON([
                 'courses'    => $courses,
                 'searchTerm' => $searchTerm,
                 'count'      => count($courses),
+                'instructors' => $instructorsById,
             ]);
         }
 
@@ -123,6 +212,7 @@ class Course extends BaseController
             'canManageCourses' => $canManageCourses,
             'mineOnly'        => $mineOnly,
             'students'        => $canManageCourses ? $this->getStudentOptions() : [],
+            'instructors'     => $canManageCourses ? $this->getInstructorOptions() : [],
             'courseStatuses'   => ['draft' => 'Draft', 'active' => 'Active', 'inactive' => 'Inactive'],
         ]);
     }
@@ -300,6 +390,79 @@ class Course extends BaseController
         ]);
     }
 
+    public function people()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_UNAUTHORIZED)
+                ->setJSON(['status' => 'error', 'message' => 'Please login first.']);
+        }
+
+        $courseId = (int) $this->request->getVar('course_id');
+        if ($courseId <= 0) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)
+                ->setJSON(['status' => 'error', 'message' => 'Invalid course ID.']);
+        }
+
+        $courseModel = new CourseModel();
+        $course = $courseModel->find($courseId);
+        if (!$course) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_NOT_FOUND)
+                ->setJSON(['status' => 'error', 'message' => 'Course not found.']);
+        }
+
+        $userModel = new UserModel();
+        $enrollmentModel = new EnrollmentModel();
+
+        // Get instructor
+        $instructor = null;
+        $instructorId = (int) ($course['instructor_id'] ?? 0);
+        if ($instructorId > 0) {
+            $instructor = $userModel->select('id, name, email')
+                ->where('id', $instructorId)
+                ->first();
+        }
+
+        // Get enrolled students
+        $enrollments = $enrollmentModel->where('course_id', $courseId)->findAll();
+        $studentIds = array_map(function($e) {
+            return (int) ($e['user_id'] ?? 0);
+        }, $enrollments);
+
+        $students = [];
+        if (!empty($studentIds)) {
+            $students = $userModel->select('id, name, email')
+                ->whereIn('id', $studentIds)
+                ->where('role', 'student')
+                ->orderBy('name', 'ASC')
+                ->findAll();
+
+            // Add enrollment date to each student
+            $enrollmentsByUserId = [];
+            foreach ($enrollments as $enrollment) {
+                $uid = (int) ($enrollment['user_id'] ?? 0);
+                if ($uid > 0) {
+                    $enrollmentsByUserId[$uid] = $enrollment;
+                }
+            }
+
+            foreach ($students as &$student) {
+                $sid = (int) ($student['id'] ?? 0);
+                if (isset($enrollmentsByUserId[$sid])) {
+                    $student['enrollment_date'] = $enrollmentsByUserId[$sid]['enrollment_date'] ?? null;
+                }
+            }
+        }
+
+        return $this->response->setJSON([
+            'instructor' => $instructor ? [
+                'id' => $instructor['id'],
+                'name' => $instructor['name'],
+                'email' => $instructor['email']
+            ] : null,
+            'students' => $students
+        ]);
+    }
+
     private function canManageCourses(): bool
     {
         if (!session()->get('isLoggedIn')) {
@@ -339,6 +502,15 @@ class Course extends BaseController
         $userModel = new UserModel();
         return $userModel->select('id, name, email')
             ->where('role', 'student')
+            ->orderBy('name', 'ASC')
+            ->findAll();
+    }
+
+    private function getInstructorOptions(): array
+    {
+        $userModel = new UserModel();
+        return $userModel->select('id, name, email')
+            ->whereIn('role', ['instructor', 'teacher', 'admin'])
             ->orderBy('name', 'ASC')
             ->findAll();
     }
