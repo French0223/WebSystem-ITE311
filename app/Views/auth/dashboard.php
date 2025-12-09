@@ -10,6 +10,7 @@
       case 'admin':
         echo view('admin', ['name' => $name]);
         break;
+    case 'instructor': // legacy role label
       case 'teacher':
         echo view('teacher', ['name' => $name]);
         break;

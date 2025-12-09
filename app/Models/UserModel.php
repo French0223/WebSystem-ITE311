@@ -16,6 +16,7 @@ class UserModel extends Model
         'email',
         'hashed_password',
         'role',
+        'status',
     ];
 
     protected $useTimestamps = false; // We removed timestamps per lab spec
@@ -27,7 +28,8 @@ class UserModel extends Model
         'name'            => 'required|min_length[2]|max_length[100]',
         'email'           => 'required|valid_email',
         'hashed_password' => 'required|min_length[6]',
-        'role'            => 'required|in_list[student,instructor,admin]',
+        'role'            => 'required|in_list[student,teacher,admin]',
+        'status'          => 'permit_empty|in_list[active,inactive]',
     ];
 
     protected $validationMessages = [];

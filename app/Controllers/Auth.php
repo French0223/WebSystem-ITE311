@@ -26,7 +26,8 @@ class Auth extends BaseController
                     'name' => $this->request->getPost('name'),
                     'email' => $this->request->getPost('email'),
                     'hashed_password' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
-                    'role' => 'student'
+                    'role' => 'student',
+                    'status' => 'active',
                 ];
 
                 if ($model->insert($data)) {
@@ -75,11 +76,18 @@ class Auth extends BaseController
                 $user = $model->where('email', $email)->first();
 
                 if ($user && password_verify($password, $user['hashed_password'])) {
+                    $normalizedRole = $user['role'] === 'instructor' ? 'teacher' : $user['role'];
+
+                    if (($user['status'] ?? 'active') !== 'active') {
+                        $session->setFlashdata('error', 'This account is inactive. Please contact an administrator.');
+                        return redirect()->back()->withInput();
+                    }
+
                     $session->set([
                         'user_id' => $user['id'],
                         'name' => $user['name'],
                         'email' => $user['email'],
-                        'role' => $user['role'],
+                        'role' => $normalizedRole,
                         'isLoggedIn' => true
                     ]);
 
@@ -116,6 +124,15 @@ class Auth extends BaseController
             return redirect()->to(base_url('login'));
         }
     
+        // If the account was deactivated after login, force logout
+        $userModel = new UserModel();
+        $currentUser = $userModel->find((int) session()->get('user_id'));
+        if ($currentUser && ($currentUser['status'] ?? 'active') !== 'active') {
+            session()->destroy();
+            session()->setFlashdata('error', 'Your account is inactive. Please contact an administrator.');
+            return redirect()->to(base_url('login'));
+        }
+
         $data = [
             'user' => [
                 'name'  => session()->get('name'),
