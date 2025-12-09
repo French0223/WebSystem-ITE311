@@ -31,7 +31,9 @@ $routes->post('/course/enroll', 'Course::enroll');
 $routes->get('/courses', 'Course::index');
 $routes->get('/courses/search', 'Course::search');
 $routes->post('/courses/search', 'Course::search');
+$routes->get('/courses/people', 'Course::people');
 $routes->post('/courses/assign', 'Course::assignStudent');
+$routes->post('/courses/assign-instructor', 'Course::assignInstructor');
 $routes->post('/courses', 'Course::create');
 
 // Materials management
