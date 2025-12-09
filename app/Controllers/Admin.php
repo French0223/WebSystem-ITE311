@@ -25,6 +25,14 @@ class Admin extends BaseController
         return null;
     }
 
+    /**
+     * Normalize role values (support legacy 'instructor' -> 'teacher').
+     */
+    private function normalizeRole(string $role): string
+    {
+        return $role === 'instructor' ? 'teacher' : $role;
+    }
+
     public function dashboard()
     {
         if ($redirect = $this->guardAdmin()) {
@@ -53,7 +61,7 @@ class Admin extends BaseController
             'users' => $model->orderBy('name')->findAll(),
             'roles' => [
                 'student'    => 'Student',
-                'instructor' => 'Instructor',
+                'teacher'    => 'Teacher',
                 'admin'      => 'Admin',
             ],
         ]);
@@ -70,7 +78,7 @@ class Admin extends BaseController
         $rules = [
             'name'     => 'required|min_length[2]|max_length[100]|alpha_space',
             'email'    => 'required|valid_email|is_unique[users.email]',
-            'role'     => 'required|in_list[student,instructor,admin]',
+            'role'     => 'required|in_list[student,teacher,admin]',
             'password' => 'required|min_length[6]',
         ];
 
@@ -86,8 +94,9 @@ class Admin extends BaseController
         $data = [
             'name'            => trim((string) $this->request->getPost('name')),
             'email'           => trim((string) $this->request->getPost('email')),
-            'role'            => $this->request->getPost('role'),
+            'role'            => $this->normalizeRole((string) $this->request->getPost('role')),
             'hashed_password' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
+            'status'          => 'active',
         ];
 
         if (!$model->insert($data)) {
@@ -110,7 +119,8 @@ class Admin extends BaseController
         $rules = [
             'name'     => 'required|min_length[2]|max_length[100]|alpha_space',
             'email'    => 'required|valid_email|is_unique[users.email,id,' . $id . ']',
-            'role'     => 'required|in_list[student,instructor,admin]',
+            'role'     => 'required|in_list[student,teacher,admin]',
+            'status'   => 'required|in_list[active,inactive]',
             'password' => 'permit_empty|min_length[6]',
         ];
 
@@ -129,10 +139,17 @@ class Admin extends BaseController
             return redirect()->to(base_url('admin/users'));
         }
 
+        if ($user['role'] === 'admin') {
+            session()->setFlashdata('error', 'Admin accounts are protected and cannot be edited.');
+            return redirect()->to(base_url('admin/users'));
+        }
+
         $data = [
             'name'  => trim((string) $this->request->getPost('name')),
             'email' => trim((string) $this->request->getPost('email')),
-            'role'  => $this->request->getPost('role'),
+            'role'  => $this->normalizeRole((string) $this->request->getPost('role')),
+            // Only allow status updates for non-admin accounts to avoid locking out administrators
+            'status'=> $this->request->getPost('status'),
         ];
 
         $password = (string) $this->request->getPost('password');

@@ -51,24 +51,38 @@
               <th>Name</th>
               <th>Email</th>
               <th>Role</th>
+              <th>Status</th>
               <th class="text-end">Actions</th>
             </tr>
           </thead>
           <tbody>
             <?php foreach ($users as $index => $user): ?>
+              <?php $roleLabel = $user['role'] === 'instructor' ? 'teacher' : $user['role']; ?>
               <tr>
                 <td><?= $index + 1 ?></td>
                 <td><?= esc($user['name']) ?></td>
                 <td><?= esc($user['email']) ?></td>
                 <td>
-                  <span class="badge <?= $user['role'] === 'admin' ? 'bg-danger' : ($user['role'] === 'instructor' ? 'bg-info text-dark' : 'bg-secondary') ?>">
-                    <?= ucfirst(esc($user['role'])) ?>
+                  <span class="badge <?= $roleLabel === 'admin' ? 'bg-danger' : ($roleLabel === 'teacher' ? 'bg-info text-dark' : 'bg-secondary') ?>">
+                    <?= ucfirst(esc($roleLabel)) ?>
+                  </span>
+                </td>
+                <td>
+                  <?php $status = $user['status'] ?? 'active'; ?>
+                  <span class="badge <?= $status === 'active' ? 'bg-success' : 'bg-secondary' ?>">
+                    <?= ucfirst(esc($status)) ?>
                   </span>
                 </td>
                 <td class="text-end">
-                  <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editUserModal<?= $user['id'] ?>">
-                    <i class="fa fa-pen"></i>
-                  </button>
+                  <?php if ($user['role'] === 'admin'): ?>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" disabled title="Admin accounts are protected">
+                      <i class="fa fa-lock"></i>
+                    </button>
+                  <?php else: ?>
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editUserModal<?= $user['id'] ?>">
+                      <i class="fa fa-pen"></i>
+                    </button>
+                  <?php endif; ?>
                 </td>
               </tr>
             <?php endforeach; ?>
@@ -133,7 +147,12 @@
 </div>
 
 <?php foreach ($users as $user): ?>
-  <?php $updateContext = $isUpdateContext($formContext ?? null, (int) $user['id']); ?>
+  <?php
+    if ($user['role'] === 'admin') {
+        continue;
+    }
+    $updateContext = $isUpdateContext($formContext ?? null, (int) $user['id']);
+  ?>
   <!-- Edit Modal -->
   <div class="modal fade" id="editUserModal<?= $user['id'] ?>" tabindex="-1" aria-labelledby="editUserModalLabel<?= $user['id'] ?>" aria-hidden="true">
     <div class="modal-dialog">
@@ -162,15 +181,26 @@
             <div class="mb-3">
               <label class="form-label">Role</label>
               <select name="role" class="form-select <?= isset($errors['role']) && $updateContext ? 'is-invalid' : '' ?>" required>
-                <?php foreach ($roles as $roleKey => $roleLabel): ?>
-                  <?php
-                    $selectedRole = $contextOld($formContext, $oldInput, 'role', $user['role'], (int) $user['id']);
-                  ?>
-                  <option value="<?= esc($roleKey) ?>" <?= $selectedRole === $roleKey ? 'selected' : '' ?>><?= esc($roleLabel) ?></option>
-                <?php endforeach; ?>
+                <?php
+                  $selectedRole = $contextOld($formContext, $oldInput, 'role', $roleLabel, (int) $user['id']);
+                ?>
+                <option value="student" <?= $selectedRole === 'student' ? 'selected' : '' ?>>Student</option>
+                <option value="teacher" <?= $selectedRole === 'teacher' ? 'selected' : '' ?>>Teacher</option>
+                <option value="admin" <?= $selectedRole === 'admin' ? 'selected' : '' ?>>Admin</option>
               </select>
               <?php if (isset($errors['role']) && $updateContext): ?>
                 <div class="invalid-feedback"><?= esc($errors['role']) ?></div>
+              <?php endif; ?>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Status</label>
+              <?php $selectedStatus = $contextOld($formContext, $oldInput, 'status', $user['status'] ?? 'active', (int) $user['id']); ?>
+              <select name="status" class="form-select <?= isset($errors['status']) && $updateContext ? 'is-invalid' : '' ?>" required>
+                <option value="active" <?= $selectedStatus === 'active' ? 'selected' : '' ?>>Active</option>
+                <option value="inactive" <?= $selectedStatus === 'inactive' ? 'selected' : '' ?>>Inactive</option>
+              </select>
+              <?php if (isset($errors['status']) && $updateContext): ?>
+                <div class="invalid-feedback"><?= esc($errors['status']) ?></div>
               <?php endif; ?>
             </div>
             <div class="mb-0">
