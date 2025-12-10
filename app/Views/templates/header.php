@@ -23,6 +23,7 @@ $isLoggedIn = !empty($role);
             <li class="nav-item"><a class="nav-link" href="#">New Lesson</a></li>
           <?php elseif ($role === 'student'): ?>
             <li class="nav-item"><a class="nav-link" href="<?= base_url('dashboard') ?>">Student Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="<?= base_url('courses') ?>">Courses</a></li>
             <li class="nav-item"><a class="nav-link" href="#">My Grades</a></li>
           <?php endif; ?>
         <?php else: ?>

@@ -14,9 +14,39 @@ class Course extends BaseController
     {
         $courseModel = new CourseModel();
         $mineOnly = $this->shouldFilterMyCourses();
+        $currentRole = session('role');
+        $currentUserId = (int) session('user_id');
 
-        if ($mineOnly) {
-            $courseModel->where('instructor_id', (int) session('user_id'));
+        // If student, only show enrolled courses
+        if ($currentRole === 'student') {
+            $enrollmentModel = new EnrollmentModel();
+            $enrollments = $enrollmentModel->where('user_id', $currentUserId)->findAll();
+            $enrolledCourseIds = array_map(function($e) {
+                return (int) ($e['course_id'] ?? 0);
+            }, $enrollments);
+            
+            if (!empty($enrolledCourseIds)) {
+                $courseModel->whereIn('id', $enrolledCourseIds);
+            } else {
+                // If no enrollments, return empty array
+                $courses = [];
+                $canManageCourses = $this->canManageCourses();
+                $students = $canManageCourses ? $this->getStudentOptions() : [];
+                $instructors = $canManageCourses ? $this->getInstructorOptions() : [];
+                
+                return view('courses/index', [
+                    'title'      => 'Courses',
+                    'courses'    => $courses,
+                    'searchTerm' => '',
+                    'canManageCourses' => $canManageCourses,
+                    'mineOnly'        => $mineOnly,
+                    'students'        => $students,
+                    'instructors'     => $instructors,
+                    'courseStatuses'   => ['active' => 'Active', 'inactive' => 'Inactive'],
+                ]);
+            }
+        } elseif ($mineOnly) {
+            $courseModel->where('instructor_id', $currentUserId);
         }
 
         $courses = $courseModel->orderBy('title', 'ASC')->findAll();
@@ -32,7 +62,7 @@ class Course extends BaseController
             'mineOnly'        => $mineOnly,
             'students'        => $students,
             'instructors'     => $instructors,
-            'courseStatuses'   => ['draft' => 'Draft', 'active' => 'Active', 'inactive' => 'Inactive'],
+            'courseStatuses'   => ['active' => 'Active', 'inactive' => 'Inactive'],
         ]);
     }
 
@@ -161,9 +191,42 @@ class Course extends BaseController
         $courseModel = new CourseModel();
         $canManageCourses = $this->canManageCourses();
         $mineOnly = $this->shouldFilterMyCourses();
+        $currentRole = session('role');
+        $currentUserId = (int) session('user_id');
 
-        if ($mineOnly) {
-            $courseModel->where('instructor_id', (int) session('user_id'));
+        // If student, only show enrolled courses
+        if ($currentRole === 'student') {
+            $enrollmentModel = new EnrollmentModel();
+            $enrollments = $enrollmentModel->where('user_id', $currentUserId)->findAll();
+            $enrolledCourseIds = array_map(function($e) {
+                return (int) ($e['course_id'] ?? 0);
+            }, $enrollments);
+            
+            if (!empty($enrolledCourseIds)) {
+                $courseModel->whereIn('id', $enrolledCourseIds);
+            } else {
+                // If no enrollments, return empty array
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'courses'    => [],
+                        'searchTerm' => $searchTerm,
+                        'count'      => 0,
+                        'instructors' => [],
+                    ]);
+                }
+                return view('courses/index', [
+                    'title'      => 'Courses',
+                    'courses'    => [],
+                    'searchTerm' => $searchTerm,
+                    'canManageCourses' => $canManageCourses,
+                    'mineOnly'        => $mineOnly,
+                    'students'        => $canManageCourses ? $this->getStudentOptions() : [],
+                    'instructors'     => $canManageCourses ? $this->getInstructorOptions() : [],
+                    'courseStatuses'   => ['active' => 'Active', 'inactive' => 'Inactive'],
+                ]);
+            }
+        } elseif ($mineOnly) {
+            $courseModel->where('instructor_id', $currentUserId);
         }
 
         if ($searchTerm !== '') {
@@ -213,7 +276,7 @@ class Course extends BaseController
             'mineOnly'        => $mineOnly,
             'students'        => $canManageCourses ? $this->getStudentOptions() : [],
             'instructors'     => $canManageCourses ? $this->getInstructorOptions() : [],
-            'courseStatuses'   => ['draft' => 'Draft', 'active' => 'Active', 'inactive' => 'Inactive'],
+            'courseStatuses'   => ['active' => 'Active', 'inactive' => 'Inactive'],
         ]);
     }
 
@@ -233,7 +296,7 @@ class Course extends BaseController
             'start_date'  => 'required|valid_date[Y-m-d]',
             'end_date'    => 'required|valid_date[Y-m-d]',
             'description' => 'permit_empty|string',
-            'status'      => 'required|in_list[draft,active,inactive]',
+            'status'      => 'required|in_list[active,inactive]',
         ];
 
         if (!$this->validate($rules)) {
@@ -264,7 +327,7 @@ class Course extends BaseController
             'end_date'      => $endDate,
             'description'   => trim((string) $this->request->getPost('description')),
             'instructor_id' => (int) session('user_id'),
-            'status'        => $this->request->getPost('status'),
+            'status'        => $this->request->getPost('status') ?? 'active',
             'created_at'    => $now,
             'updated_at'    => $now,
         ];
@@ -274,6 +337,51 @@ class Course extends BaseController
                 ->withInput()
                 ->with('course_errors', $courseModel->errors() ?: ['general' => 'Unable to create course.'])
                 ->with('course_modal_open', '1');
+        }
+
+        // Create notifications for course creation
+        $notifModel = new NotificationModel();
+        $userModel  = new UserModel();
+        $courseTitle = $data['title'];
+        $creatorId = (int) session('user_id');
+        $instructorId = (int) $data['instructor_id'];
+        $now = date('Y-m-d H:i:s');
+        $notifications = [];
+        $notified = [];
+
+        $addNotification = function (int $recipientId, string $message) use (&$notifications, &$notified, $now) {
+            if ($recipientId <= 0 || isset($notified[$recipientId])) {
+                return;
+            }
+            $notifications[] = [
+                'user_id'    => $recipientId,
+                'message'    => $message,
+                'is_read'    => 0,
+                'created_at' => $now,
+            ];
+            $notified[$recipientId] = true;
+        };
+
+        // Notify instructor if different from creator
+        if ($instructorId > 0 && $instructorId !== $creatorId) {
+            $addNotification($instructorId, "A new course '{$courseTitle}' has been assigned to you");
+        }
+
+        // Notify all admins (excluding creator if admin)
+        $admins = $userModel->select('id')->where('role', 'admin')->findAll();
+        foreach ($admins as $admin) {
+            $adminId = (int) ($admin['id'] ?? 0);
+            if ($adminId > 0 && $adminId !== $creatorId) {
+                $addNotification($adminId, "A new course '{$courseTitle}' has been created");
+            }
+        }
+
+        if (!empty($notifications)) {
+            if (count($notifications) === 1) {
+                $notifModel->insert($notifications[0]);
+            } else {
+                $notifModel->insertBatch($notifications);
+            }
         }
 
         session()->setFlashdata('success', 'Course created successfully.');
@@ -410,6 +518,25 @@ class Course extends BaseController
                 ->setJSON(['status' => 'error', 'message' => 'Course not found.']);
         }
 
+        // Check access: Allow access if user is admin, assigned teacher, or enrolled student (regardless of course status)
+        $role = session('role');
+        $userId = (int) session('user_id');
+        
+        if ($role === 'student') {
+            $enrollmentModel = new EnrollmentModel();
+            if (!$enrollmentModel->isAlreadyEnrolled($userId, $courseId)) {
+                return $this->response->setStatusCode(ResponseInterface::HTTP_FORBIDDEN)
+                    ->setJSON(['status' => 'error', 'message' => 'Access denied. You are not enrolled in this course.']);
+            }
+        } elseif (!in_array($role, ['admin', 'teacher', 'instructor'], true)) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_FORBIDDEN)
+                ->setJSON(['status' => 'error', 'message' => 'Access denied.']);
+        } elseif ($role !== 'admin' && (int) ($course['instructor_id'] ?? 0) !== $userId) {
+            // For teachers/instructors, check if they're assigned to this course
+            return $this->response->setStatusCode(ResponseInterface::HTTP_FORBIDDEN)
+                ->setJSON(['status' => 'error', 'message' => 'Access denied. You are not assigned to this course.']);
+        }
+
         $userModel = new UserModel();
         $enrollmentModel = new EnrollmentModel();
 
@@ -460,6 +587,154 @@ class Course extends BaseController
                 'email' => $instructor['email']
             ] : null,
             'students' => $students
+        ]);
+    }
+
+    public function materials()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_UNAUTHORIZED)
+                ->setJSON(['status' => 'error', 'message' => 'Please login first.']);
+        }
+
+        $courseId = (int) $this->request->getVar('course_id');
+        if ($courseId <= 0) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)
+                ->setJSON(['status' => 'error', 'message' => 'Invalid course ID.']);
+        }
+
+        $courseModel = new CourseModel();
+        $course = $courseModel->find($courseId);
+        if (!$course) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_NOT_FOUND)
+                ->setJSON(['status' => 'error', 'message' => 'Course not found.']);
+        }
+
+        // Check access permissions: Allow access if user is admin, assigned teacher, or enrolled student (regardless of course status)
+        $role = session('role');
+        $userId = (int) session('user_id');
+        
+        if ($role === 'student') {
+            $enrollmentModel = new EnrollmentModel();
+            if (!$enrollmentModel->isAlreadyEnrolled($userId, $courseId)) {
+                return $this->response->setStatusCode(ResponseInterface::HTTP_FORBIDDEN)
+                    ->setJSON(['status' => 'error', 'message' => 'Access denied. You are not enrolled in this course.']);
+            }
+        } elseif (!in_array($role, ['admin', 'teacher', 'instructor'], true)) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_FORBIDDEN)
+                ->setJSON(['status' => 'error', 'message' => 'Access denied.']);
+        } elseif ($role !== 'admin' && (int) ($course['instructor_id'] ?? 0) !== $userId) {
+            // For teachers/instructors, check if they're assigned to this course
+            return $this->response->setStatusCode(ResponseInterface::HTTP_FORBIDDEN)
+                ->setJSON(['status' => 'error', 'message' => 'Access denied. You are not assigned to this course.']);
+        }
+
+        $materialModel = new \App\Models\MaterialModel();
+        $materials = $materialModel->getMaterialsByCourse($courseId);
+        
+        // Build download URLs
+        $materialsWithUrls = array_map(function($material) {
+            return [
+                'id' => $material['id'],
+                'filename' => $material['file_name'],
+                'name' => $material['file_name'],
+                'uploaded_at' => $material['created_at'] ?? null,
+                'url' => base_url('materials/download/' . $material['id']),
+                'download_url' => base_url('materials/download/' . $material['id'])
+            ];
+        }, $materials);
+
+        return $this->response->setJSON([
+            'materials' => $materialsWithUrls
+        ]);
+    }
+
+    public function update()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_UNAUTHORIZED)
+                ->setJSON(['status' => 'error', 'message' => 'Please login first.', 'csrf' => csrf_hash()]);
+        }
+
+        // Only admin can update courses
+        if (session('role') !== 'admin') {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_FORBIDDEN)
+                ->setJSON(['status' => 'error', 'message' => 'Only admins can update courses.', 'csrf' => csrf_hash()]);
+        }
+
+        $courseId = (int) $this->request->getPost('course_id');
+        if ($courseId <= 0) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)
+                ->setJSON(['status' => 'error', 'message' => 'Invalid course ID.', 'csrf' => csrf_hash()]);
+        }
+
+        helper(['form']);
+
+        $rules = [
+            'title'       => 'required|min_length[3]|max_length[200]',
+            'course_code' => 'required|min_length[3]|max_length[50]',
+            'term'        => 'required|min_length[2]|max_length[100]',
+            'semester'    => 'required|min_length[2]|max_length[100]',
+            'start_date'  => 'required|valid_date[Y-m-d]',
+            'end_date'    => 'required|valid_date[Y-m-d]',
+            'description' => 'permit_empty|string',
+            'status'      => 'required|in_list[active,inactive]',
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)
+                ->setJSON([
+                    'status' => 'error',
+                    'message' => 'Validation failed.',
+                    'errors' => $this->validator->getErrors(),
+                    'csrf' => csrf_hash()
+                ]);
+        }
+
+        $startDate = $this->request->getPost('start_date');
+        $endDate   = $this->request->getPost('end_date');
+        if (strtotime($startDate) > strtotime($endDate)) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)
+                ->setJSON(['status' => 'error', 'message' => 'End date must be after start date.', 'csrf' => csrf_hash()]);
+        }
+
+        $courseModel = new CourseModel();
+        $course = $courseModel->find($courseId);
+        if (!$course) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_NOT_FOUND)
+                ->setJSON(['status' => 'error', 'message' => 'Course not found.', 'csrf' => csrf_hash()]);
+        }
+
+        // Check if course_code is unique (excluding current course)
+        $existingCourse = $courseModel->where('course_code', strtoupper(trim((string) $this->request->getPost('course_code'))))
+            ->where('id !=', $courseId)
+            ->first();
+        if ($existingCourse) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)
+                ->setJSON(['status' => 'error', 'message' => 'Course code already exists.', 'csrf' => csrf_hash()]);
+        }
+
+        $updateData = [
+            'title'       => trim((string) $this->request->getPost('title')),
+            'course_code' => strtoupper(trim((string) $this->request->getPost('course_code'))),
+            'term'        => trim((string) $this->request->getPost('term')),
+            'semester'    => trim((string) $this->request->getPost('semester')),
+            'start_date'  => $startDate,
+            'end_date'    => $endDate,
+            'description' => trim((string) $this->request->getPost('description')),
+            'status'      => $this->request->getPost('status'),
+            'updated_at'  => date('Y-m-d H:i:s'),
+        ];
+
+        if (!$courseModel->update($courseId, $updateData)) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)
+                ->setJSON(['status' => 'error', 'message' => 'Unable to update course.', 'csrf' => csrf_hash()]);
+        }
+
+        return $this->response->setJSON([
+            'status'  => 'ok',
+            'message' => 'Course updated successfully.',
+            'csrf'    => csrf_hash(),
         ]);
     }
 

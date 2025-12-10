@@ -22,12 +22,6 @@
 
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <?php if ($session->getFlashdata('error')): ?>
-                <div class="alert alert-danger"><?= esc($session->getFlashdata('error')) ?></div>
-            <?php endif; ?>
-            <?php if ($session->getFlashdata('success')): ?>
-                <div class="alert alert-success"><?= esc($session->getFlashdata('success')) ?></div>
-            <?php endif; ?>
 
             <div class="card shadow-sm border-0">
                 <div class="card-body">
@@ -37,13 +31,11 @@
                         <div class="mb-3">
                             <label for="material" class="form-label fw-semibold">Select a file to upload</label>
                             <div class="border rounded-3 p-4 text-center bg-light-subtle" style="border-style:dashed;">
-                                <input type="file" name="material" id="material" class="form-control" required>
+                                <input type="file" name="material" id="material" class="form-control" accept=".pdf,.ppt,.pptx" required>
                             </div>
                             <div class="mt-2 small">
                                 <span class="badge text-bg-light border me-1">PDF</span>
                                 <span class="badge text-bg-light border me-1">PPT/PPTX</span>
-                                <span class="badge text-bg-light border me-1">DOC/DOCX</span>
-                                <span class="badge text-bg-light border me-1">ZIP</span>
                                 <span class="ms-2 text-muted">Max size: 10MB</span>
                             </div>
                         </div>

@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\CourseModel;
 use App\Models\EnrollmentModel;
 use App\Models\MaterialModel;
+use App\Models\NotificationModel;
 
 class Materials extends BaseController
 {
@@ -26,7 +27,7 @@ class Materials extends BaseController
             $rules = [
                 'material' => [
                     'label' => 'File',
-                    'rules' => 'uploaded[material]|max_size[material,10240]|ext_in[material,pdf,ppt,pptx,doc,docx,zip]'
+                    'rules' => 'uploaded[material]|max_size[material,10240]|ext_in[material,pdf,ppt,pptx]'
                 ]
             ];
 
@@ -64,6 +65,44 @@ class Materials extends BaseController
             ]);
 
             if ($saved) {
+                // Create notifications for material upload
+                $notifModel = new NotificationModel();
+                $enrollmentModel = new EnrollmentModel();
+                $courseTitle = $course['title'] ?? 'Course';
+                $now = date('Y-m-d H:i:s');
+                $notifications = [];
+                $notified = [];
+
+                $addNotification = function (int $recipientId, string $message) use (&$notifications, &$notified, $now) {
+                    if ($recipientId <= 0 || isset($notified[$recipientId])) {
+                        return;
+                    }
+                    $notifications[] = [
+                        'user_id'    => $recipientId,
+                        'message'    => $message,
+                        'is_read'    => 0,
+                        'created_at' => $now,
+                    ];
+                    $notified[$recipientId] = true;
+                };
+
+                // Notify all enrolled students
+                $enrollments = $enrollmentModel->where('course_id', $courseId)->findAll();
+                foreach ($enrollments as $enrollment) {
+                    $studentId = (int) ($enrollment['user_id'] ?? 0);
+                    if ($studentId > 0) {
+                        $addNotification($studentId, "New material '{$originalName}' has been uploaded to {$courseTitle}");
+                    }
+                }
+
+                if (!empty($notifications)) {
+                    if (count($notifications) === 1) {
+                        $notifModel->insert($notifications[0]);
+                    } else {
+                        $notifModel->insertBatch($notifications);
+                    }
+                }
+
                 session()->setFlashdata('success', 'Material uploaded.');
             } else {
                 session()->setFlashdata('error', 'Failed to save record.');

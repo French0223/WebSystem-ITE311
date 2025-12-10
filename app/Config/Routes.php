@@ -32,9 +32,11 @@ $routes->get('/courses', 'Course::index');
 $routes->get('/courses/search', 'Course::search');
 $routes->post('/courses/search', 'Course::search');
 $routes->get('/courses/people', 'Course::people');
+$routes->get('/courses/materials', 'Course::materials');
 $routes->post('/courses/assign', 'Course::assignStudent');
 $routes->post('/courses/assign-instructor', 'Course::assignInstructor');
 $routes->post('/courses', 'Course::create');
+$routes->post('/courses/update', 'Course::update');
 
 // Materials management
 $routes->get('/admin/course/(:num)/upload', 'Materials::upload/$1');

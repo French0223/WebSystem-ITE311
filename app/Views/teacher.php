@@ -59,28 +59,40 @@
               </div>
               <div class="d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-1 mb-0"><?= esc($title) ?></h5>
-                <button
-                  type="button"
-                  class="btn btn-sm btn-primary course-manage-btn"
-                  data-bs-toggle="modal"
-                  data-bs-target="#courseManageModal"
-                  data-course-id="<?= $courseId ?>"
-                  data-course-title="<?= esc($title, 'attr') ?>"
-                  data-course-code="<?= esc($courseCode, 'attr') ?>"
-                  data-course-term="<?= esc($term, 'attr') ?>"
-                  data-course-semester="<?= esc($semester, 'attr') ?>"
-                  data-course-status="<?= esc($statusRaw, 'attr') ?>"
-                  data-course-description="<?= esc($description, 'attr') ?>"
-                  data-course-start="<?= esc($course['start_date'] ?? '', 'attr') ?>"
-                  data-course-end="<?= esc($course['end_date'] ?? '', 'attr') ?>"
-                  data-instructor-name="<?= esc($course['instructor']['name'] ?? session('name') ?? '', 'attr') ?>"
-                  data-instructor-email="<?= esc($course['instructor']['email'] ?? session('email') ?? '', 'attr') ?>"
-                  data-materials-url="<?= esc(base_url('admin/course/' . $courseId . '/upload'), 'attr') ?>"
-                  data-course-owns="1"
-                  style="cursor: pointer; position: relative; z-index: 1000;"
-                >
-                  <i class="fa-solid fa-folder-open me-1"></i>Open
-                </button>
+                <?php if ($statusRaw === 'active'): ?>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-primary course-manage-btn"
+                    data-bs-toggle="modal"
+                    data-bs-target="#courseManageModal"
+                    data-course-id="<?= $courseId ?>"
+                    data-course-title="<?= esc($title, 'attr') ?>"
+                    data-course-code="<?= esc($courseCode, 'attr') ?>"
+                    data-course-term="<?= esc($term, 'attr') ?>"
+                    data-course-semester="<?= esc($semester, 'attr') ?>"
+                    data-course-status="<?= esc($statusRaw, 'attr') ?>"
+                    data-course-description="<?= esc($description, 'attr') ?>"
+                    data-course-start="<?= esc($course['start_date'] ?? '', 'attr') ?>"
+                    data-course-end="<?= esc($course['end_date'] ?? '', 'attr') ?>"
+                    data-instructor-name="<?= esc($course['instructor']['name'] ?? session('name') ?? '', 'attr') ?>"
+                    data-instructor-email="<?= esc($course['instructor']['email'] ?? session('email') ?? '', 'attr') ?>"
+                    data-materials-url="<?= esc(base_url('admin/course/' . $courseId . '/upload'), 'attr') ?>"
+                    data-course-owns="1"
+                    style="cursor: pointer; position: relative; z-index: 1000;"
+                  >
+                    <i class="fa-solid fa-folder-open me-1"></i>Open
+                  </button>
+                <?php else: ?>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-secondary"
+                    disabled
+                    title="This course is inactive"
+                    style="cursor: not-allowed;"
+                  >
+                    <i class="fa-solid fa-lock me-1"></i>Inactive
+                  </button>
+                <?php endif; ?>
               </div>
               <p class="text-muted mb-2 small"><?= esc($term) ?> <?= $semester ? '• ' . esc($semester) : '' ?></p>
               <p class="card-text text-muted flex-grow-1" style="min-height:72px;"><?= esc($description) ?></p>
@@ -201,8 +213,8 @@
               <?= csrf_field() ?>
               <div class="mb-3">
                 <label class="form-label fw-semibold">Upload new material</label>
-                <input type="file" name="material" id="materialsFileInput" class="form-control" required>
-                <div class="form-text">Allowed: PDF, PPT/PPTX, DOC/DOCX, ZIP • Max size: 10MB</div>
+                <input type="file" name="material" id="materialsFileInput" class="form-control" accept=".pdf,.ppt,.pptx" required>
+                <div class="form-text">Allowed: PDF, PPT/PPTX • Max size: 10MB</div>
               </div>
               <div class="d-flex justify-content-end">
                 <button type="submit" class="btn btn-primary">
