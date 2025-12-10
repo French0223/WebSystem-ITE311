@@ -18,13 +18,6 @@
         <div class="register-box">
           <h2 class="text-center mb-4 text-primary">Create Account</h2>
 
-          <?php if(session()->getFlashdata('success')): ?>
-              <div class="alert alert-success"><?= session()->getFlashdata('success') ?></div>
-          <?php endif; ?>
-
-          <?php if(session()->getFlashdata('error')): ?>
-              <div class="alert alert-danger"><?= session()->getFlashdata('error') ?></div>
-          <?php endif; ?>
 
           <?php if(isset($validation)): ?>
               <div class="alert alert-danger"><?= $validation->listErrors() ?></div>

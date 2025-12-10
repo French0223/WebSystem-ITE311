@@ -15,8 +15,8 @@
 
 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3">
   <div>
-    <h1 class="h3 text-primary mb-1">Browse Courses</h1>
-    <p class="text-muted mb-0">Search the catalog or filter instantly to find the right class.</p>
+    <h1 class="h3 text-primary mb-1"><?= $currentRole === 'student' ? 'My Courses' : 'Browse Courses' ?></h1>
+    <p class="text-muted mb-0"><?= $currentRole === 'student' ? 'View your enrolled courses.' : 'Search the catalog or filter instantly to find the right class.' ?></p>
   </div>
   <?php if (!empty($canManageCourses)): ?>
     <button class="btn btn-primary d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#createCourseModal">
@@ -26,18 +26,6 @@
   <?php endif; ?>
 </div>
 
-<?php if (session()->getFlashdata('success')): ?>
-  <div class="alert alert-success alert-dismissible fade show" role="alert">
-    <?= esc(session()->getFlashdata('success')) ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-  </div>
-<?php endif; ?>
-<?php if (session()->getFlashdata('error')): ?>
-  <div class="alert alert-danger alert-dismissible fade show" role="alert">
-    <?= esc(session()->getFlashdata('error')) ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-  </div>
-<?php endif; ?>
 
 
 <div class="card border-0 shadow-sm mb-4">
@@ -70,7 +58,11 @@
 <div id="coursesContainer" class="row g-3">
   <?php if (empty($courses)): ?>
     <div class="col-12">
-      <div class="alert alert-info">No courses available. Seed the database to continue.</div>
+      <?php if ($currentRole === 'student'): ?>
+        <div class="alert alert-info">You are not enrolled in any courses yet. Please contact your instructor to be enrolled.</div>
+      <?php else: ?>
+        <div class="alert alert-info">No courses available. Seed the database to continue.</div>
+      <?php endif; ?>
     </div>
   <?php else: ?>
     <?php foreach ($courses as $course): ?>
@@ -82,7 +74,7 @@
         $semester     = $course['semester'] ?? '';
         $startDate    = !empty($course['start_date']) ? date('M d, Y', strtotime($course['start_date'])) : 'TBD';
         $endDate      = !empty($course['end_date']) ? date('M d, Y', strtotime($course['end_date'])) : 'TBD';
-        $statusRaw    = $course['status'] ?? 'draft';
+        $statusRaw    = $course['status'] ?? 'active';
         $status       = ucfirst($statusRaw);
         $courseId     = (int) ($course['id'] ?? 0);
         $instructorId = (int) ($course['instructor_id'] ?? 0);
@@ -103,6 +95,53 @@
               <h5 class="card-title mb-1 mb-0"><?= esc($title) ?></h5>
               <?php if ($canManageCourses): ?>
                 <?php if ($currentRole === 'admin' || $ownsCourse): ?>
+                  <?php if ($currentRole === 'admin' || $statusRaw === 'active'): ?>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-primary course-manage-btn"
+                      data-bs-toggle="modal"
+                      data-bs-target="#courseManageModal"
+                      data-course-id="<?= $courseId ?>"
+                      data-course-title="<?= esc($title, 'attr') ?>"
+                      data-course-code="<?= esc($courseCode, 'attr') ?>"
+                      data-course-term="<?= esc($term, 'attr') ?>"
+                      data-course-semester="<?= esc($semester, 'attr') ?>"
+                      data-course-status="<?= esc($statusRaw, 'attr') ?>"
+                      data-course-description="<?= esc($description, 'attr') ?>"
+                      data-course-start="<?= esc($course['start_date'] ?? '', 'attr') ?>"
+                      data-course-end="<?= esc($course['end_date'] ?? '', 'attr') ?>"
+                      data-instructor-name="<?= esc($instructor['name'] ?? '', 'attr') ?>"
+                      data-instructor-email="<?= esc($instructor['email'] ?? '', 'attr') ?>"
+                      data-materials-url="<?= esc(base_url('admin/course/' . $courseId . '/upload'), 'attr') ?>"
+                      data-course-owns="<?= $ownsCourse ? '1' : '0' ?>"
+                      style="cursor: pointer; position: relative; z-index: 1000;"
+                    >
+                      <i class="fa-solid fa-folder-open me-1"></i>Open
+                    </button>
+                  <?php else: ?>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-secondary"
+                      disabled
+                      title="This course is inactive"
+                      style="cursor: not-allowed;"
+                    >
+                      <i class="fa-solid fa-lock me-1"></i>Inactive
+                    </button>
+                  <?php endif; ?>
+                <?php else: ?>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-secondary"
+                    disabled
+                    title="This course is not assigned to you"
+                    style="cursor: not-allowed;"
+                  >
+                    <i class="fa-solid fa-lock me-1"></i>Locked
+                  </button>
+                <?php endif; ?>
+              <?php elseif ($currentRole === 'student'): ?>
+                <?php if ($statusRaw === 'active'): ?>
                   <button
                     type="button"
                     class="btn btn-sm btn-primary course-manage-btn"
@@ -119,8 +158,9 @@
                     data-course-end="<?= esc($course['end_date'] ?? '', 'attr') ?>"
                     data-instructor-name="<?= esc($instructor['name'] ?? '', 'attr') ?>"
                     data-instructor-email="<?= esc($instructor['email'] ?? '', 'attr') ?>"
-                    data-materials-url="<?= esc(base_url('admin/course/' . $courseId . '/upload'), 'attr') ?>"
-                    data-course-owns="<?= $ownsCourse ? '1' : '0' ?>"
+                    data-materials-url=""
+                    data-course-owns="0"
+                    data-is-student="1"
                     style="cursor: pointer; position: relative; z-index: 1000;"
                   >
                     <i class="fa-solid fa-folder-open me-1"></i>Open
@@ -130,10 +170,10 @@
                     type="button"
                     class="btn btn-sm btn-secondary"
                     disabled
-                    title="This course is not assigned to you"
+                    title="This course is inactive"
                     style="cursor: not-allowed;"
                   >
-                    <i class="fa-solid fa-lock me-1"></i>Locked
+                    <i class="fa-solid fa-lock me-1"></i>Inactive
                   </button>
                 <?php endif; ?>
               <?php endif; ?>
@@ -242,7 +282,7 @@
                 <label class="form-label fw-semibold">Status</label>
                 <select name="status" class="form-select <?= isset($courseErrors['status']) ? 'is-invalid' : '' ?>" required>
                   <?php foreach (($courseStatuses ?? []) as $key => $label): ?>
-                    <option value="<?= esc($key) ?>" <?= (($courseOldInput['status'] ?? 'draft') === $key) ? 'selected' : '' ?>>
+                    <option value="<?= esc($key) ?>" <?= (($courseOldInput['status'] ?? 'active') === $key) ? 'selected' : '' ?>>
                       <?= esc($label) ?>
                     </option>
                   <?php endforeach; ?>
@@ -268,111 +308,195 @@
       </div>
     </div>
   </div>
+<?php endif; ?>
 
-  <!-- Course Manage Modal -->
-  <div class="modal fade" id="courseManageModal" tabindex="-1" aria-labelledby="courseManageModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <div>
-            <h5 class="modal-title text-primary mb-0" id="courseManageTitle">Course Title</h5>
-            <small class="text-muted d-block" id="courseManageCode">Course Code: —</small>
-          </div>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<!-- Course Manage Modal (accessible to all roles) -->
+<div class="modal fade" id="courseManageModal" tabindex="-1" aria-labelledby="courseManageModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title text-primary mb-0" id="courseManageTitle">Course Title</h5>
+          <small class="text-muted d-block" id="courseManageCode">Course Code: —</small>
         </div>
-        <div class="modal-body">
-          <ul class="nav nav-tabs" id="courseManageTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-              <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overviewTab" type="button" role="tab">Home</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#materialsTab" type="button" role="tab">Materials</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#peopleTab" type="button" role="tab">People</button>
-            </li>
-          </ul>
-          <div class="tab-content pt-3">
-            <div class="tab-pane fade show active" id="overviewTab" role="tabpanel">
-              <div>
-                <!-- Course Overview Section -->
-                <div class="mb-4">
-                  <h5 class="text-primary mb-3" id="overviewCourseTitleHeader">Course Title</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <ul class="nav nav-tabs" id="courseManageTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overviewTab" type="button" role="tab">Home</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#materialsTab" type="button" role="tab">Materials</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#peopleTab" type="button" role="tab">People</button>
+          </li>
+        </ul>
+        <div class="tab-content pt-3">
+          <div class="tab-pane fade show active" id="overviewTab" role="tabpanel">
+            <div>
+              <!-- Course Overview Section -->
+              <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="text-primary mb-0" id="overviewCourseTitleHeader">Course Title</h5>
+                  <?php if ($currentRole === 'admin'): ?>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="editCourseBtn">
+                      <i class="fa-solid fa-pen-to-square me-1"></i>Edit
+                    </button>
+                  <?php endif; ?>
+                </div>
+                <div id="courseViewMode">
                   <div class="row g-3">
-                    <div class="col-md-6">
-                      <div class="text-muted small mb-1"><strong>COURSE CODE:</strong></div>
-                      <div class="fw-semibold" id="overviewCourseCodeValue">—</div>
+                  <div class="col-md-6">
+                    <div class="text-muted small mb-1"><strong>COURSE CODE:</strong></div>
+                    <div class="fw-semibold" id="overviewCourseCodeValue">—</div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="text-muted small mb-1"><strong>STATUS:</strong></div>
+                    <div>
+                      <span class="badge rounded-pill bg-success text-white" id="overviewStatus">Active</span>
                     </div>
-                    <div class="col-md-6">
-                      <div class="text-muted small mb-1"><strong>STATUS:</strong></div>
-                      <div>
-                        <span class="badge rounded-pill bg-success text-white" id="overviewStatus">Active</span>
-                      </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="text-muted small mb-1"><strong>TERM:</strong></div>
+                    <div class="fw-semibold" id="overviewTerm">—</div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="text-muted small mb-1"><strong>SEMESTER:</strong></div>
+                    <div class="fw-semibold" id="overviewSemester">—</div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="text-muted small mb-1"><strong>START DATE:</strong></div>
+                    <div class="fw-semibold">
+                      <i class="fa-regular fa-calendar me-1"></i>
+                      <span id="overviewStart">—</span>
                     </div>
-                    <div class="col-md-6">
-                      <div class="text-muted small mb-1"><strong>TERM:</strong></div>
-                      <div class="fw-semibold" id="overviewTerm">—</div>
-                    </div>
-                    <div class="col-md-6">
-                      <div class="text-muted small mb-1"><strong>SEMESTER:</strong></div>
-                      <div class="fw-semibold" id="overviewSemester">—</div>
-                    </div>
-                    <div class="col-md-6">
-                      <div class="text-muted small mb-1"><strong>START DATE:</strong></div>
-                      <div class="fw-semibold">
-                        <i class="fa-regular fa-calendar me-1"></i>
-                        <span id="overviewStart">—</span>
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <div class="text-muted small mb-1"><strong>END DATE:</strong></div>
-                      <div class="fw-semibold">
-                        <i class="fa-regular fa-flag me-1"></i>
-                        <span id="overviewEnd">—</span>
-                      </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="text-muted small mb-1"><strong>END DATE:</strong></div>
+                    <div class="fw-semibold">
+                      <i class="fa-regular fa-flag me-1"></i>
+                      <span id="overviewEnd">—</span>
                     </div>
                   </div>
                 </div>
-
-                <!-- Description Section -->
-                <hr class="my-4">
-                <div class="mb-4">
-                  <h6 class="fw-semibold mb-2">Description</h6>
-                  <div id="overviewDescription">—</div>
                 </div>
-
-                <!-- Instructor Section -->
-                <hr class="my-4">
-                <div>
-                  <div class="d-flex align-items-center gap-2 mb-3">
-                    <i class="fa-solid fa-chalkboard-user text-primary"></i>
-                    <h6 class="text-primary mb-0">Instructor</h6>
+                
+                <!-- Edit Form (hidden by default, shown when Edit button is clicked) -->
+                <?php if ($currentRole === 'admin'): ?>
+                  <div id="courseEditMode" class="d-none">
+                    <form id="editCourseForm">
+                      <?= csrf_field() ?>
+                      <input type="hidden" name="course_id" id="editCourseId">
+                      <div class="row g-3">
+                        <div class="col-md-6">
+                          <label class="form-label fw-semibold">Course Title</label>
+                          <input type="text" name="title" id="editTitle" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label fw-semibold">Course Code</label>
+                          <input type="text" name="course_code" id="editCourseCode" class="form-control text-uppercase" required>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label fw-semibold">Term</label>
+                          <select name="term" id="editTerm" class="form-select" required>
+                            <option value="">Select Term</option>
+                            <?php
+                              $terms = ['1st Term', '2nd Term', '3rd Term'];
+                              foreach ($terms as $term):
+                            ?>
+                              <option value="<?= esc($term) ?>"><?= esc($term) ?></option>
+                            <?php endforeach; ?>
+                          </select>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label fw-semibold">Semester</label>
+                          <select name="semester" id="editSemester" class="form-select" required>
+                            <option value="">Select Semester</option>
+                            <?php
+                              $semesters = ['1st Semester', '2nd Semester', '3rd Semester', 'Summer'];
+                              foreach ($semesters as $semester):
+                            ?>
+                              <option value="<?= esc($semester) ?>"><?= esc($semester) ?></option>
+                            <?php endforeach; ?>
+                          </select>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label fw-semibold">Start Date</label>
+                          <input type="date" name="start_date" id="editStartDate" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label fw-semibold">End Date</label>
+                          <input type="date" name="end_date" id="editEndDate" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label fw-semibold">Status</label>
+                          <select name="status" id="editStatus" class="form-select" required>
+                            <?php foreach (($courseStatuses ?? []) as $key => $label): ?>
+                              <option value="<?= esc($key) ?>"><?= esc($label) ?></option>
+                            <?php endforeach; ?>
+                          </select>
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label fw-semibold">Description</label>
+                          <textarea name="description" id="editDescription" rows="4" class="form-control" placeholder="Describe this course..."></textarea>
+                        </div>
+                        <div class="col-12">
+                          <div class="d-flex gap-2 justify-content-end">
+                            <button type="button" class="btn btn-secondary" id="cancelEditBtn">Cancel</button>
+                            <button type="submit" class="btn btn-primary">
+                              <i class="fa-solid fa-save me-1"></i>Save Changes
+                            </button>
+                          </div>
+                          <div id="editCourseFeedback" class="mt-2 small"></div>
+                        </div>
+                      </div>
+                    </form>
                   </div>
-                  <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                      <div class="d-flex align-items-center gap-3">
-                        <div class="flex-shrink-0">
-                          <i class="fa-solid fa-chalkboard-user fa-2x text-primary"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                          <div class="fw-semibold mb-1" id="overviewInstructorName">Unassigned</div>
-                          <div class="text-muted small" id="overviewInstructorEmail">—</div>
-                        </div>
+                <?php endif; ?>
+              </div>
+
+              <!-- Description Section -->
+              <hr class="my-4">
+              <div class="mb-4">
+                <h6 class="fw-semibold mb-2">Description</h6>
+                <div id="overviewDescription">—</div>
+              </div>
+
+              <!-- Instructor Section -->
+              <hr class="my-4">
+              <div>
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <i class="fa-solid fa-chalkboard-user text-primary"></i>
+                  <h6 class="text-primary mb-0">Instructor</h6>
+                </div>
+                <div class="card border-0 shadow-sm">
+                  <div class="card-body">
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="flex-shrink-0">
+                        <i class="fa-solid fa-chalkboard-user fa-2x text-primary"></i>
+                      </div>
+                      <div class="flex-grow-1">
+                        <div class="fw-semibold mb-1" id="overviewInstructorName">Unassigned</div>
+                        <div class="text-muted small" id="overviewInstructorEmail">—</div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            <div class="tab-pane fade" id="materialsTab" role="tabpanel">
-              <p class="text-muted" id="materialsInfo">Manage the files shared with students.</p>
-              <div class="alert alert-warning d-none" id="materialsWarning">Only the assigned instructor can upload materials.</div>
+          </div>
+          <div class="tab-pane fade" id="materialsTab" role="tabpanel">
+            <p class="text-muted" id="materialsInfo"><?= $currentRole === 'student' ? 'View course materials shared by your instructor.' : 'Manage the files shared with students.' ?></p>
+            <div class="alert alert-warning d-none" id="materialsWarning">Only the assigned instructor can upload materials.</div>
+            <?php if ($canManageCourses): ?>
               <form id="materialsUploadForm" class="d-none" method="post" enctype="multipart/form-data">
                 <?= csrf_field() ?>
                 <div class="mb-3">
                   <label class="form-label fw-semibold">Upload new material</label>
-                  <input type="file" name="material" id="materialsFileInput" class="form-control" required>
-                  <div class="form-text">Allowed: PDF, PPT/PPTX, DOC/DOCX, ZIP • Max size: 10MB</div>
+                  <input type="file" name="material" id="materialsFileInput" class="form-control" accept=".pdf,.ppt,.pptx" required>
+                  <div class="form-text">Allowed: PDF, PPT/PPTX • Max size: 10MB</div>
                 </div>
                 <div class="d-flex justify-content-end">
                   <button type="submit" class="btn btn-primary">
@@ -380,8 +504,18 @@
                   </button>
                 </div>
               </form>
+            <?php endif; ?>
+            <div id="materialsList" class="mt-3">
+              <!-- Materials list will be populated here -->
             </div>
-            <div class="tab-pane fade" id="peopleTab" role="tabpanel">
+          </div>
+          <div class="tab-pane fade" id="peopleTab" role="tabpanel">
+            <?php if ($currentRole === 'student'): ?>
+              <!-- Student view: Only show list of people -->
+              <h6 class="fw-semibold mb-3">People in this Course</h6>
+              <div id="peopleAllContainer" class="d-flex flex-column gap-2"></div>
+            <?php else: ?>
+              <!-- Admin/Teacher view: Full management interface -->
               <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                 <div class="btn-group" role="group" aria-label="People filters">
                   <button type="button" class="btn btn-outline-primary active" data-people-filter="instructor">Instructor</button>
@@ -495,16 +629,17 @@
                 <h6 class="fw-semibold mb-2">All People in Course</h6>
                 <div id="peopleAllContainer" class="d-flex flex-column gap-2"></div>
               </div>
-            </div>
+            <?php endif; ?>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
-<?php endif; ?>
+</div>
+
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
@@ -600,7 +735,10 @@
   function renderCourses(courses) {
 
     if (!Array.isArray(courses) || courses.length === 0) {
-      $container.html('<div class="col-12"><div class="alert alert-info">No courses found matching your search.</div></div>');
+      const message = currentRole === 'student' 
+        ? 'No enrolled courses found matching your search.' 
+        : 'No courses found matching your search.';
+      $container.html('<div class="col-12"><div class="alert alert-info">' + message + '</div></div>');
       return;
     }
 
@@ -612,7 +750,7 @@
       const semester = course.semester || '';
       const startDate = course.start_date ? new Date(course.start_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'TBD';
       const endDate = course.end_date ? new Date(course.end_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'TBD';
-      const status = (course.status || 'draft').charAt(0).toUpperCase() + (course.status || 'draft').slice(1);
+      const status = (course.status || 'active').charAt(0).toUpperCase() + (course.status || 'active').slice(1);
       const searchBlob = (title + ' ' + description + ' ' + courseCode + ' ' + term + ' ' + semester).toLowerCase();
       const instructorId = Number(course.instructor_id || 0);
       const courseId = Number(course.id || 0);
@@ -638,7 +776,8 @@
                 <h5 class="card-title mb-1 mb-0">${escapeHtml(title)}</h5>
                 ${canManageCourses ? (
                   currentRole === 'admin' || ownsCourse
-                    ? `
+                    ? (currentRole === 'admin' || (course.status || 'active').toLowerCase() === 'active'
+                      ? `
                   <button
                     type="button"
                     class="btn btn-sm btn-primary course-manage-btn"
@@ -649,7 +788,7 @@
                     data-course-code="${escapeHtml(courseCode)}"
                     data-course-term="${escapeHtml(term)}"
                     data-course-semester="${escapeHtml(semester)}"
-                    data-course-status="${escapeHtml(course.status || 'draft')}"
+                    data-course-status="${escapeHtml(course.status || 'active')}"
                     data-course-description="${escapeHtml(description)}"
                     data-course-start="${escapeHtml(course.start_date || '')}"
                     data-course-end="${escapeHtml(course.end_date || '')}"
@@ -661,6 +800,16 @@
                   >
                     <i class="fa-solid fa-folder-open me-1"></i>Open
                   </button>`
+                      : `
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-secondary"
+                    disabled
+                    title="This course is inactive"
+                    style="cursor: not-allowed;"
+                  >
+                    <i class="fa-solid fa-lock me-1"></i>Inactive
+                  </button>`)
                     : `
                   <button
                     type="button"
@@ -670,6 +819,42 @@
                     style="cursor: not-allowed;"
                   >
                     <i class="fa-solid fa-lock me-1"></i>Locked
+                  </button>`
+                ) : currentRole === 'student' ? (
+                  (course.status || 'active').toLowerCase() === 'active'
+                    ? `
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-primary course-manage-btn"
+                    data-bs-toggle="modal"
+                    data-bs-target="#courseManageModal"
+                    data-course-id="${courseId}"
+                    data-course-title="${escapeHtml(title)}"
+                    data-course-code="${escapeHtml(courseCode)}"
+                    data-course-term="${escapeHtml(term)}"
+                    data-course-semester="${escapeHtml(semester)}"
+                    data-course-status="${escapeHtml(course.status || 'active')}"
+                    data-course-description="${escapeHtml(description)}"
+                    data-course-start="${escapeHtml(course.start_date || '')}"
+                    data-course-end="${escapeHtml(course.end_date || '')}"
+                    data-instructor-name="${escapeHtml(instructorName)}"
+                    data-instructor-email="${escapeHtml(instructorEmail)}"
+                    data-materials-url=""
+                    data-course-owns="0"
+                    data-is-student="1"
+                    style="cursor: pointer; position: relative; z-index: 1000;"
+                  >
+                    <i class="fa-solid fa-folder-open me-1"></i>Open
+                  </button>`
+                    : `
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-secondary"
+                    disabled
+                    title="This course is inactive"
+                    style="cursor: not-allowed;"
+                  >
+                    <i class="fa-solid fa-lock me-1"></i>Inactive
                   </button>`
                 ) : ''}
               </div>
@@ -735,7 +920,10 @@
         renderCourses(response.courses || []);
         applyClientFilter(term);
         const count = response.count ?? (response.courses ? response.courses.length : 0);
-        $feedback.text(count ? `Found ${count} course${count === 1 ? '' : 's'} for "${term || 'all'}".` : 'No courses found matching your search.');
+        const noResultsMessage = currentRole === 'student' 
+          ? 'No enrolled courses found matching your search.' 
+          : 'No courses found matching your search.';
+        $feedback.text(count ? `Found ${count} course${count === 1 ? '' : 's'} for "${term || 'all'}".` : noResultsMessage);
       })
       .fail(function () {
         $feedback.text('Unable to complete the search right now. Please try again later.');
@@ -747,11 +935,19 @@
   }
 
   function setPeopleFilter(mode) {
-    $peopleFilterButtons.removeClass('active');
-    $peopleFilterButtons.filter(`[data-people-filter="${mode}"]`).addClass('active');
-    $peopleInstructorSection.toggleClass('d-none', mode !== 'instructor');
-    $peopleStudentSection.toggleClass('d-none', mode !== 'student');
-    $peopleAllSection.toggleClass('d-none', mode !== 'all');
+    if ($peopleFilterButtons.length > 0) {
+      $peopleFilterButtons.removeClass('active');
+      $peopleFilterButtons.filter(`[data-people-filter="${mode}"]`).addClass('active');
+    }
+    if ($peopleInstructorSection.length) {
+      $peopleInstructorSection.toggleClass('d-none', mode !== 'instructor');
+    }
+    if ($peopleStudentSection.length) {
+      $peopleStudentSection.toggleClass('d-none', mode !== 'student');
+    }
+    if ($peopleAllSection.length) {
+      $peopleAllSection.toggleClass('d-none', mode !== 'all');
+    }
   }
 
   async function fetchPeople(courseId) {
@@ -768,12 +964,16 @@
     const instructor = data && data.instructor ? data.instructor : null;
     const instructorName = instructor ? instructor.name : 'Unassigned';
     const instructorEmail = instructor ? instructor.email : '—';
-    // Update People tab
-    $peopleInstructorName.text(instructorName);
-    $peopleInstructorEmail.text(instructorEmail);
+    
     // Update Home tab
     $overviewInstructorName.text(instructorName);
     $overviewInstructorEmail.text(instructorEmail);
+    
+    // Update People tab (only if not student view)
+    if ($peopleInstructorName.length) {
+      $peopleInstructorName.text(instructorName);
+      $peopleInstructorEmail.text(instructorEmail);
+    }
 
     const students = (data && Array.isArray(data.students)) ? data.students : [];
     const hasStudents = students.length > 0;
@@ -814,7 +1014,62 @@
         `);
       });
     }
-    $peopleAllContainer.html(parts.length ? parts.join('') : '<div class="text-muted">No people yet for this course.</div>');
+    if ($peopleAllContainer.length) {
+      $peopleAllContainer.html(parts.length ? parts.join('') : '<div class="text-muted">No people yet for this course.</div>');
+    }
+  }
+
+  function loadMaterialsForStudent(courseId) {
+    if (!courseId) return;
+    const $materialsList = $('#materialsList');
+    if (!$materialsList.length) return;
+    
+    $materialsList.html('<div class="text-muted">Loading materials...</div>');
+    
+    $.getJSON('<?= site_url('courses/materials') ?>', { course_id: courseId })
+      .done(function(response) {
+        if (response && response.materials) {
+          if (response.materials.length > 0) {
+            const materialsHtml = response.materials.map(material => {
+              const fileName = material.filename || material.name || 'Unknown';
+              const fileUrl = material.url || material.download_url || '#';
+              const uploadDate = material.uploaded_at ? new Date(material.uploaded_at).toLocaleDateString() : '';
+              return `
+                <div class="card border-0 shadow-sm mb-2">
+                  <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                      <div class="fw-semibold">${escapeHtml(fileName)}</div>
+                      ${uploadDate ? `<div class="text-muted small">Uploaded: ${escapeHtml(uploadDate)}</div>` : ''}
+                    </div>
+                    <a href="${escapeHtml(fileUrl)}" class="btn btn-sm btn-primary" target="_blank">
+                      <i class="fa-solid fa-download me-1"></i>Download
+                    </a>
+                  </div>
+                </div>
+              `;
+            }).join('');
+            $materialsList.html(materialsHtml);
+          } else {
+            $materialsList.html('<div class="text-muted">No materials available for this course.</div>');
+          }
+        } else {
+          $materialsList.html('<div class="text-muted">No materials available for this course.</div>');
+        }
+      })
+      .fail(function(xhr, status, error) {
+        console.error('Error loading materials:', { xhr, status, error });
+        let errorMsg = 'Unable to load materials.';
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+          errorMsg = xhr.responseJSON.message;
+        } else if (xhr.status === 404) {
+          errorMsg = 'Materials endpoint not found.';
+        } else if (xhr.status === 403) {
+          errorMsg = 'Access denied. You may not be enrolled in this course.';
+        } else if (xhr.status === 401) {
+          errorMsg = 'Please login to view materials.';
+        }
+        $materialsList.html(`<div class="text-danger">${escapeHtml(errorMsg)}</div>`);
+      });
   }
 
   // Listen for when the modal is shown and populate data
@@ -869,7 +1124,7 @@
       const code = $btn.data('course-code') || '';
       const term = $btn.data('course-term') || '';
       const semester = $btn.data('course-semester') || '';
-      const status = ($btn.data('course-status') || 'draft').toString().toLowerCase();
+      const status = ($btn.data('course-status') || 'active').toString().toLowerCase();
       const description = $btn.data('course-description') || 'No description provided yet.';
       const startDate = $btn.data('course-start') || '';
       const endDate = $btn.data('course-end') || '';
@@ -877,8 +1132,12 @@
       const instructorEmail = $btn.data('instructor-email') || '';
       const materialsUrl = $btn.data('materials-url') || '';
       const owns = String($btn.data('course-owns')) === '1';
+      const isStudent = String($btn.data('is-student')) === '1';
       
-      console.log('Course data loaded:', { courseId, title, code });
+      // Store course ID in modal for edit functionality
+      $(manageModalEl).data('current-course-id', courseId);
+      
+      console.log('Course data loaded:', { courseId, title, code, isStudent });
 
       // Ensure Home tab is active
       if (overviewTabBtn) {
@@ -909,27 +1168,54 @@
       $overviewInstructorName.text(instructorName || 'Unassigned');
       $overviewInstructorEmail.text(instructorEmail || '—');
 
-      // People tab defaults
-      $peopleInstructorCourseId.val(courseId);
-      $peopleStudentCourseId.val(courseId);
-      $manageCourseId.val(courseId);
-      // Set instructor info immediately from data attributes
-      $peopleInstructorName.text(instructorName || 'Unassigned');
-      $peopleInstructorEmail.text(instructorEmail || '—');
-      setPeopleFilter('instructor');
-      fetchPeople(courseId);
+      // People tab - handle student vs admin/teacher view
+      if (isStudent) {
+        // For students, show only the list view (View All section)
+        $peopleInstructorCourseId.val(courseId);
+        $peopleStudentCourseId.val(courseId);
+        $manageCourseId.val(courseId);
+        // Automatically show "View All" for students - People tab shows only list
+        fetchPeople(courseId);
+      } else {
+        // Admin/Teacher view
+        $peopleInstructorCourseId.val(courseId);
+        $peopleStudentCourseId.val(courseId);
+        $manageCourseId.val(courseId);
+        // Set instructor info immediately from data attributes
+        if ($peopleInstructorName.length) {
+          $peopleInstructorName.text(instructorName || 'Unassigned');
+          $peopleInstructorEmail.text(instructorEmail || '—');
+        }
+        setPeopleFilter('instructor');
+        fetchPeople(courseId);
+      }
 
-      $materialsWarning.toggleClass('d-none', owns);
-      $materialsInfo.text(owns ? 'Manage the files shared with students.' : 'Only the assigned instructor can upload materials.');
-      if ($materialsForm.length) {
-        if (owns && materialsUrl) {
-          $materialsForm.removeClass('d-none').attr('action', materialsUrl);
-          if ($materialsFileInput.length) {
-            $materialsFileInput.val('');
-          }
-        } else {
+      // Materials tab
+      if (isStudent) {
+        $materialsWarning.addClass('d-none');
+        $materialsInfo.text('View course materials shared by your instructor.');
+        if ($materialsForm.length) {
           $materialsForm.addClass('d-none').attr('action', '');
         }
+        // Store courseId for materials tab click event
+        $('#materialsTab').data('course-id', courseId);
+        // Load materials for viewing
+        loadMaterialsForStudent(courseId);
+      } else {
+        $materialsWarning.toggleClass('d-none', owns);
+        $materialsInfo.text(owns ? 'Manage the files shared with students.' : 'Only the assigned instructor can upload materials.');
+        if ($materialsForm.length) {
+          if (owns && materialsUrl) {
+            $materialsForm.removeClass('d-none').attr('action', materialsUrl);
+            if ($materialsFileInput.length) {
+              $materialsFileInput.val('');
+            }
+          } else {
+            $materialsForm.addClass('d-none').attr('action', '');
+          }
+        }
+        // Store courseId for materials tab click event (for admin/teacher to view materials too)
+        $('#materialsTab').data('course-id', courseId);
       }
 
       // Check if enroll form elements exist before using them
@@ -962,6 +1248,156 @@
     } catch (error) {
       console.error('Error in handleCourseManageClick:', error);
     }
+  }
+  
+  // Edit Course Functionality (Admin only)
+  const $editCourseBtn = $('#editCourseBtn');
+  const $cancelEditBtn = $('#cancelEditBtn');
+  const $courseViewMode = $('#courseViewMode');
+  const $courseEditMode = $('#courseEditMode');
+  const $editCourseForm = $('#editCourseForm');
+  const $editCourseFeedback = $('#editCourseFeedback');
+  
+  if ($editCourseBtn.length) {
+    $editCourseBtn.on('click', function() {
+      // Get course ID from the modal data
+      const courseId = Number($(manageModalEl).data('current-course-id'));
+      
+      if (!courseId) {
+        console.error('Course ID not found');
+        $editCourseFeedback.html('<div class="alert alert-danger mb-0">Unable to find course ID.</div>');
+        return;
+      }
+      
+      // Get current course data from the view
+      const currentTitle = $('#overviewCourseTitleHeader').text();
+      const currentCode = $('#overviewCourseCodeValue').text();
+      const currentTerm = $('#overviewTerm').text();
+      const currentSemester = $('#overviewSemester').text();
+      const currentStatus = $('#overviewStatus').text().toLowerCase();
+      const currentDescription = $('#overviewDescription').text();
+      const currentStart = $('#overviewStart').text();
+      const currentEnd = $('#overviewEnd').text();
+      
+      // Parse dates from display format
+      let startDateValue = '';
+      let endDateValue = '';
+      if (currentStart && currentStart !== '—') {
+        try {
+          const startDate = new Date(currentStart);
+          if (!isNaN(startDate.getTime())) {
+            startDateValue = startDate.toISOString().split('T')[0];
+          }
+        } catch (e) {
+          console.warn('Could not parse start date:', currentStart);
+        }
+      }
+      if (currentEnd && currentEnd !== '—') {
+        try {
+          const endDate = new Date(currentEnd);
+          if (!isNaN(endDate.getTime())) {
+            endDateValue = endDate.toISOString().split('T')[0];
+          }
+        } catch (e) {
+          console.warn('Could not parse end date:', currentEnd);
+        }
+      }
+      
+      // Populate edit form
+      $('#editCourseId').val(courseId);
+      $('#editTitle').val(currentTitle);
+      $('#editCourseCode').val(currentCode);
+      $('#editTerm').val(currentTerm);
+      $('#editSemester').val(currentSemester);
+      $('#editStatus').val(currentStatus);
+      $('#editDescription').val(currentDescription === '—' ? '' : currentDescription);
+      $('#editStartDate').val(startDateValue);
+      $('#editEndDate').val(endDateValue);
+      
+      // Switch to edit mode
+      $courseViewMode.addClass('d-none');
+      $courseEditMode.removeClass('d-none');
+      $editCourseFeedback.html('').removeClass('alert-success alert-danger');
+    });
+  }
+  
+  if ($cancelEditBtn.length) {
+    $cancelEditBtn.on('click', function() {
+      $courseViewMode.removeClass('d-none');
+      $courseEditMode.addClass('d-none');
+      $editCourseFeedback.html('').removeClass('alert-success alert-danger');
+      $editCourseForm[0].reset();
+    });
+  }
+  
+  if ($editCourseForm.length) {
+    $editCourseForm.on('submit', function(e) {
+      e.preventDefault();
+      
+      const formData = $(this).serialize();
+      const $submitBtn = $(this).find('button[type="submit"]');
+      const originalBtnText = $submitBtn.html();
+      
+      $submitBtn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i>Saving...');
+      $editCourseFeedback.html('').removeClass('alert-success alert-danger');
+      
+      $.ajax({
+        url: '<?= site_url('courses/update') ?>',
+        method: 'POST',
+        data: formData,
+        dataType: 'json',
+        success: function(response) {
+          if (response && response.status === 'ok') {
+            $editCourseFeedback.html('<div class="alert alert-success mb-0"><i class="fa-solid fa-check-circle me-1"></i>' + 
+              escapeHtml(response.message || 'Course updated successfully.') + '</div>');
+            
+            // Update CSRF token
+            if (response.csrf) {
+              $('input[name="<?= csrf_token() ?>"]').val(response.csrf);
+            }
+            
+            // Reload the page after a short delay to show updated data
+            setTimeout(function() {
+              location.reload();
+            }, 1500);
+          } else {
+            let errorMsg = response.message || 'Failed to update course.';
+            if (response.errors) {
+              const errorList = Object.values(response.errors).join('<br>');
+              errorMsg = errorList || errorMsg;
+            }
+            $editCourseFeedback.html('<div class="alert alert-danger mb-0"><i class="fa-solid fa-exclamation-circle me-1"></i>' + 
+              escapeHtml(errorMsg) + '</div>');
+            
+            // Update CSRF token
+            if (response.csrf) {
+              $('input[name="<?= csrf_token() ?>"]').val(response.csrf);
+            }
+          }
+        },
+        error: function(xhr, status, error) {
+          console.error('Error updating course:', { xhr, status, error });
+          let errorMsg = 'Unable to update course. Please try again.';
+          if (xhr.responseJSON && xhr.responseJSON.message) {
+            errorMsg = xhr.responseJSON.message;
+          } else if (xhr.status === 403) {
+            errorMsg = 'You do not have permission to update courses.';
+          } else if (xhr.status === 401) {
+            errorMsg = 'Please login to continue.';
+          }
+          $editCourseFeedback.html('<div class="alert alert-danger mb-0"><i class="fa-solid fa-exclamation-circle me-1"></i>' + 
+            escapeHtml(errorMsg) + '</div>');
+          
+          // Update CSRF token
+          if (xhr.responseJSON && xhr.responseJSON.csrf) {
+            $('input[name="<?= csrf_token() ?>"]').val(xhr.responseJSON.csrf);
+          }
+        },
+        complete: function() {
+          $submitBtn.prop('disabled', false).html(originalBtnText);
+        }
+      });
+    });
   }
 
   $peopleFilterButtons.on('click', function () {
@@ -1340,10 +1776,21 @@
     });
   }
 
-  function updateCsrf(newHash) {
+  function updateCsrf(newHash) { 
     if (!newHash) return;
     $('input[name="<?= esc(csrf_token()) ?>"]').val(newHash);
   }
+
+  // Listen for Materials tab click to load/refresh materials
+  $(document).on('shown.bs.tab', 'button[data-bs-target="#materialsTab"]', function() {
+    const courseId = $('#materialsTab').data('course-id');
+    if (courseId && currentRole === 'student') {
+      loadMaterialsForStudent(courseId);
+    } else if (courseId) {
+      // For admin/teacher, also load materials to view what's uploaded
+      loadMaterialsForStudent(courseId);
+    }
+  });
 
   <?php if (!empty($canManageCourses)): ?>
     const modalShouldOpen = <?= $courseModalOpen ? 'true' : 'false' ?>;
