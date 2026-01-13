@@ -112,6 +112,65 @@ class Course extends BaseController
                 ->setJSON(['status' => 'error', 'message' => 'Unable to enroll student.', 'csrf' => csrf_hash()]);
         }
 
+        // Create notification for the enrolled student
+        $notifModel = new NotificationModel();
+        $courseTitle = $course['title'] ?? 'course';
+        $courseName = $course['name'] ?? $courseTitle;
+        $now = date('Y-m-d H:i:s');
+        
+        // Notify the student
+        $message = "You have been enrolled in the course '{$courseName}'";
+        $notifModel->insert([
+            'user_id'    => $studentId,
+            'message'    => $message,
+            'is_read'    => 0,
+            'created_at' => $now,
+        ]);
+
+        // Also notify staff (instructor and admins) about the enrollment
+        $notifications = [];
+        $notified = [];
+        $courseInstructorId = (int) ($course['instructor_id'] ?? 0);
+        $enrollerId = (int) session('user_id');
+        $studentName = $student['name'] ?? 'A student';
+        $staffMessage = $studentName . ' has been enrolled in ' . $courseName;
+
+        $addNotification = function (int $recipientId, string $message) use (&$notifications, &$notified, $now) {
+            if ($recipientId <= 0 || isset($notified[$recipientId])) {
+                return;
+            }
+            $notifications[] = [
+                'user_id'    => $recipientId,
+                'message'    => $message,
+                'is_read'    => 0,
+                'created_at' => $now,
+            ];
+            $notified[$recipientId] = true;
+        };
+
+        // Notify assigned instructor/teacher, if available and different from enroller
+        if ($courseInstructorId > 0 && $courseInstructorId !== $enrollerId && $courseInstructorId !== $studentId) {
+            $addNotification($courseInstructorId, $staffMessage);
+        }
+
+        // Notify all admins about the enrollment (excluding enroller and student)
+        $admins = $userModel->select('id')->where('role', 'admin')->findAll();
+        foreach ($admins as $admin) {
+            $adminId = (int) ($admin['id'] ?? 0);
+            if ($adminId > 0 && $adminId !== $enrollerId && $adminId !== $studentId) {
+                $addNotification($adminId, $staffMessage);
+            }
+        }
+
+        // Insert staff notifications if any
+        if (!empty($notifications)) {
+            if (count($notifications) === 1) {
+                $notifModel->insert($notifications[0]);
+            } else {
+                $notifModel->insertBatch($notifications);
+            }
+        }
+
         return $this->response->setJSON([
             'status'  => 'ok',
             'message' => $student['name'] . ' assigned to ' . ($course['title'] ?? 'course') . '.',
@@ -171,6 +230,23 @@ class Course extends BaseController
         if (!$courseModel->update($courseId, $updateData)) {
             return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)
                 ->setJSON(['status' => 'error', 'message' => 'Unable to assign instructor.', 'csrf' => csrf_hash()]);
+        }
+
+        // Create notification for the assigned instructor
+        $notifModel = new NotificationModel();
+        $courseTitle = $course['title'] ?? 'course';
+        $assignerId = (int) session('user_id');
+        $now = date('Y-m-d H:i:s');
+        
+        // Notify the instructor if they are different from the assigner
+        if ($instructorId > 0 && $instructorId !== $assignerId) {
+            $message = "You have been assigned as instructor to the course '{$courseTitle}'";
+            $notifModel->insert([
+                'user_id'    => $instructorId,
+                'message'    => $message,
+                'is_read'    => 0,
+                'created_at' => $now,
+            ]);
         }
 
         return $this->response->setJSON([
@@ -362,9 +438,13 @@ class Course extends BaseController
             $notified[$recipientId] = true;
         };
 
-        // Notify instructor if different from creator
-        if ($instructorId > 0 && $instructorId !== $creatorId) {
-            $addNotification($instructorId, "A new course '{$courseTitle}' has been assigned to you");
+        // Notify instructor (if different from creator, they were assigned; if same, they created it)
+        if ($instructorId > 0) {
+            if ($instructorId !== $creatorId) {
+                $addNotification($instructorId, "A new course '{$courseTitle}' has been assigned to you");
+            } else {
+                $addNotification($instructorId, "Course '{$courseTitle}' has been created successfully");
+            }
         }
 
         // Notify all admins (excluding creator if admin)
